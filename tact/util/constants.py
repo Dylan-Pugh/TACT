@@ -1,0 +1,9 @@
+UI_FILE_PATH = "/Users/DylanPugh/Development/file-parser-GUI/tact/UI/fileParserGUI.ui"
+PARSER_CONFIG_FILE_PATH = "/Users/DylanPugh/Development/file-parser-GUI/tact/config/parserConfig.JSON"
+LOG_CONFIG_PATH = "/Users/DylanPugh/Development/file-parser-GUI/tact/config/logConfig.JSON"
+LOG_FILE_PATH = "/Users/DylanPugh/Development/file-parser-GUI/tact/logs/tact.log"
+LOG_LEVELS = ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]
+DEFAULT_LOG_LEVEL = "INFO"
+DEFAULT_PARSED_COLUMN_NAME = "parsed_time"
+AVAILABLE_ENCODING_MODES = ["utf-8-sig", "ISO-8859-1"]
+DEFAULT_ENCODING = "utf-8-sig"

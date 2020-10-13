@@ -1,0 +1,1 @@
+{"logLevel": "INFO", "backupCount": 5, "consoleFormatting": "%(name)s - %(levelname)s - %(message)s", "fileFormatting": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"}

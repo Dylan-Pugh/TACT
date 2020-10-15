@@ -1,4 +1,5 @@
 UI_FILE_PATH = "/Users/DylanPugh/Development/file-parser-GUI/tact/UI/fileParserGUI.ui"
+QA_UI_FILE_PATH = "/Users/DylanPugh/Development/file-parser-GUI/tact/UI/qualityCheckGUI.ui"
 PARSER_CONFIG_FILE_PATH = "/Users/DylanPugh/Development/file-parser-GUI/tact/config/parserConfig.JSON"
 LOG_CONFIG_PATH = "/Users/DylanPugh/Development/file-parser-GUI/tact/config/logConfig.JSON"
 LOG_FILE_PATH = "/Users/DylanPugh/Development/file-parser-GUI/tact/logs/tact.log"

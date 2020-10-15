@@ -5,9 +5,9 @@ from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
 import tact.control.controller as controller
 import tact.util.constants as constants
-import tact.util.groupFileDialog as groupFileDialog
+import tact.util.group_file_dialog as groupFileDialog
 import tact.util.outlog as outlog
-from tact.control.loggingController import \
+from tact.control.logging_controller import \
     LoggingController as loggingController
 
 qt_creator_file = constants.UI_FILE_PATH  # Enter file here.
@@ -17,8 +17,9 @@ logger = loggingController.get_logger(__name__)
 
 class ParserWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     input_file_name = "not found"
-    settings = "not found"
+    settings = constants.PARSER_CONFIG_FILE_PATH
     processing = QtCore.pyqtSignal(int, name="value")
+    switch_window = QtCore.pyqtSignal(int, name="index")
 
     def __init__(self):
         logger.info("TACT: The Temporal Adjustment Calculation Tool")
@@ -39,7 +40,11 @@ class ParserWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.encodingDropDown.setCurrentIndex(
             constants.AVAILABLE_ENCODING_MODES.index(
                 constants.DEFAULT_ENCODING))
-        self.encodingDropDown.currentIndexChanged(self.update_settings)
+        self.encodingDropDown.currentIndexChanged.connect(self.update_settings)
+        self.toQualityButton.clicked.connect(
+            lambda: self.switch_window.emit(1))
+        # TODO: For testing purposes:
+        self.toQualityButton.setEnabled(True)
 
         logger.info("GUI initialization complete")
 
@@ -159,8 +164,10 @@ class ParserWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.processing.emit(100)
         self.processingComplete.show()
 
+        self.toQualityButton.setEnabled(True)
+
     def update_settings(self):
-        with open(self.settings, "r") as json_file:
+        with open(self.settings, "w+") as json_file:
             config = json.load(json_file)
 
             config["inputPath"] = self.inputFileTextBox.toPlainText()

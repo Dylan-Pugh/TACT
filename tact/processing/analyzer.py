@@ -3,9 +3,9 @@ import json
 import os
 import re
 
-import tact.processingScripts.datetime_parser as datetime_parser
+import tact.processing.datetime_parser as datetime_parser
 import tact.util.constants as constants
-from tact.control.loggingController import \
+from tact.control.logging_controller import \
     LoggingController as loggingController
 
 logger = loggingController.get_logger(__name__)

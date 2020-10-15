@@ -1,7 +1,7 @@
 import logging
 import json
 import tact.util.constants as constants
-import tact.util.autoReplacingFileHandler as rotatingFileHandler
+import tact.util.auto_log_handler as rotatingFileHandler
 
 
 class LoggingController:

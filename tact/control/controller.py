@@ -3,11 +3,11 @@ import errno
 import json
 import os
 
-import tact.processingScripts.analyzer as analyzer
-import tact.processingScripts.datetime_parser as parser
-import tact.util.concatCSV
+import tact.processing.analyzer as analyzer
+import tact.processing.datetime_parser as parser
+import tact.util.concat_CSV
 import tact.util.constants as constants
-from tact.control.loggingController import \
+from tact.control.logging_controller import \
     LoggingController as loggingController
 
 # interacts with GUI, calls analyzer, parser, and quality control

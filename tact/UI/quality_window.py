@@ -1,6 +1,9 @@
+import json
+
 from PyQt5 import QtCore, QtWidgets, uic
 
 import tact.util.constants as constants
+from tact.UI.qa_check_widget import QACheckWidget
 from tact.control.logging_controller import \
     LoggingController as loggingController
 
@@ -22,4 +25,24 @@ class QualityWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.backButton.clicked.connect(lambda: self.switch_window.emit(0))
 
+        #  Open settings file
+        with open(constants.QA_CONFIG_PATH) as json_file:
+            self.config = json.load(json_file)
+
         logger.info("Quality Check init complete")
+
+    def display_initial_settings(self):
+        self.MinDateBox.setPlainText(self.config["minDate"])
+        self.MaxDateBox.setPlainText(self.config["maxDate"])
+
+    def display_list_of_checks(self):
+        checks = self.config["checks"]
+
+        for current in checks:
+            if current["visible"]:
+                to_add = QACheckWidget(
+                    current["enabled"],
+                    current["name"],
+                    current["description"],
+                    current["args"])
+                self.checksList.addItem(to_add)

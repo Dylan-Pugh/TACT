@@ -2,6 +2,14 @@
 # -*- coding: iso-8859-1 -*-
 import csv
 import datetime
+import dateutil
+import dateutil.parser
+from pytz import timezone
+from tact.control.logging_controller import \
+    LoggingController as loggingController
+import tact.util.record_validator as validator
+
+logger = loggingController.get_logger(__name__)
 
 """
 Simple script to standardize the 'Time' field for AZMP datasets
@@ -9,10 +17,53 @@ Simple script to standardize the 'Time' field for AZMP datasets
 
 
 def create_iso_time(csv_row, date_fields, time_field):
-    # Date Time
+    # Try to parse using the dateutil library, this is the preferred method
+
+    try:
+        # Using the Unix epoch as the defualt date - this should never be necessary
+        # and is only to assign the correct timezone to the calculated time
+        default_date = datetime.datetime(
+            1970, 1, 1, 0, 0, 0)
+        default_date = timezone("US/Eastern").localize(default_date)
+
+        date_string = ""
+
+        for current_field in date_fields:
+            if date_fields.get(current_field) != "Not Found":
+                current_value = date_fields.get(current_field)
+                if current_value in csv_row and validator.validate(
+                        csv_row[current_value]):
+                    if date_string == "":
+                        date_string += csv_row[current_value]
+                    else:
+                        date_string += ("/" + csv_row[current_value])
+
+        time_string = ""
+
+        for current_field in time_field:
+            if time_field.get(current_field) != "Not Found":
+                current_value = time_field.get(current_field)
+                if current_value in csv_row and validator.validate(
+                        csv_row[current_value]):
+                    time_string += csv_row[current_value]
+
+        date_time_string = date_string + "T" + time_string
+
+        parsed_datetime = dateutil.parser.parse(
+            date_time_string, default=default_date)
+
+        return parsed_datetime.isoformat()
+
+    except (ValueError, OverflowError) as ex:
+        logger.error(str(ex))
+        logger.warning("DateUtil parse failed, attempting to manually parse.")
+
+    # Legacy manual/"dirty" parsing - this is error-prone
+    # only used if above approach fails
+
     if len(date_fields) == 1:
-        if date_fields.get("date") in csv_row and csv_row[date_fields.get(
-                "date")] != 'NaN' and csv_row[date_fields.get("date")] != '0':
+        if date_fields.get("date") in csv_row and validator.validate(
+                csv_row[date_fields.get("date")]):
             date = csv_row[date_fields.get("date")]
             if len(date) == 8:
                 # Standard yyyymmdd format, just split the String
@@ -38,8 +89,8 @@ def create_iso_time(csv_row, date_fields, time_field):
 
     # Splits the 'Time' field into hour and minute, based on positioning.
     # Accounts for time strings of lengths 1 - 4
-    if len(time_field) == 1 and time_field.get("time") in csv_row and csv_row[time_field.get(
-            "time")] != 'NaN' and csv_row[time_field.get("time")] != '0':
+    if len(time_field) == 1 and time_field.get(
+            "time") in csv_row and validator.validate(csv_row[time_field.get("time")]):
         tmp = csv_row[time_field.get("time")]
         sec = '00'
 
@@ -60,7 +111,7 @@ def create_iso_time(csv_row, date_fields, time_field):
             sec = tmp[-2:]
             min = tmp[-4:-2]
             hr = tmp[:-4]
-    elif len(time_field) == 3:
+    elif len(time_field) == 3 and time_field.get("hour") != "Not Found":
         # if input is a well-formed Dict
         [hr,
          min,

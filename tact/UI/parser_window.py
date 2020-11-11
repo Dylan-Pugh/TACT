@@ -167,7 +167,7 @@ class ParserWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.toQualityButton.setEnabled(True)
 
     def update_settings(self):
-        with open(self.settings, "w+") as json_file:
+        with open(self.settings, "r") as json_file:
             config = json.load(json_file)
 
             config["inputPath"] = self.inputFileTextBox.toPlainText()
@@ -175,13 +175,27 @@ class ParserWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             config["outputFilePath"] = self.outputFileTextBox.toPlainText()
             config["parsedColumnName"] = self.resultsColumnTextBox.toPlainText()
             config["parsedColumnPosition"] = self.columnPositionSpinBox.value()
+
+            # Checks to perform
+            config["dropDuplicates"] = True if self.de_dupe_checkBox.isChecked(
+            ) else False
+
+            config["fixTimes"] = True if self.fix_times_checkBox.isChecked() else False
+
+            config["dropEmpty"] = True if self.remove_columns_checkBox.isChecked(
+            ) else False
+
+            config["normalizeHeaders"] = True if self.normalize_columns_checkBox.isChecked(
+            ) else False
+
             # write time & date fields as a JSON object
             config["dateFields"] = json.loads(
                 self.dateFieldsTextBox.toPlainText())
             config["timeField"] = json.loads(
                 self.timeFieldTextBox.toPlainText())
 
-            controller.update_settings(config)
+            controller.update_settings(
+                config, constants.PARSER_CONFIG_FILE_PATH)
 
 
 if __name__ == "__main__":

@@ -2,11 +2,14 @@ import argparse
 import errno
 import json
 import os
+import pandas as pd
 
 import tact.processing.analyzer as analyzer
 import tact.processing.datetime_parser as parser
+import tact.processing.quality_checker as quality_checker
 import tact.util.concat_CSV
 import tact.util.constants as constants
+import tact.util.csv_utils as csv_utils
 from tact.control.logging_controller import \
     LoggingController as loggingController
 
@@ -68,15 +71,42 @@ def process():
                     outfile = "OUT_" + os.path.basename(current_file)
                     output_path = output_path + outfile
 
-                ret = parser.compile_datetime(
-                    f,
-                    output_path,
-                    config["dateFields"],
-                    config["timeField"],
-                    config["parsedColumnName"],
-                    config["verbose"],
-                )
-                logger.debug(ret)
+                # Correct times
+                if (config["fixTimes"]):
+                    ret = parser.compile_datetime(
+                        f,
+                        output_path,
+                        config["dateFields"],
+                        config["timeField"],
+                        config["parsedColumnName"]
+                    )
+                    logger.debug(ret)
+
+                # Additional fixes:
+                if config["dropDuplicates"] or config["dropEmpty"] or config["normalizeHeaders"]:
+                    logger.info(
+                        "Additional fixes selected, opening data frame")
+
+                    input_frame = pd.read_csv(current_file)
+
+                    if config["dropDuplicates"]:
+                        logger.info("Removing duplicate columns")
+                        csv_utils.drop_duplicate_columns(
+                            input_frame, config["inputFileEncoding"])
+                    if config["dropEmpty"]:
+                        logger.info("Removing empty columns")
+                        csv_utils.drop_unnamed_columns(
+                            input_frame, config["inputFileEncoding"])
+                    if config["normalizeHeaders"]:
+                        logger.info("Replacing characters in column headers")
+                        csv_utils.replace_char_in_headers(
+                            input_frame, constants.HEADER_CHAR_TO_REPLACE,
+                            constants.HEADER_REPLACEMENT_CHAR)
+
+                    # write out file
+                    logger.info("Writing out data frame")
+                    csv_utils.write_out_data_frame(
+                        input_frame, output_path, config["inputFileEncoding"])
 
     logger.info("Processing complete")
 
@@ -95,13 +125,34 @@ def concat_files(input_path):
         input_path, config.get("inputFileEncoding"))
 
 
-def update_settings(settings):
+def update_settings(settings, path):
     logger.info("Updating settings")
     # write out settings file
-    with open(constants.PARSER_CONFIG_FILE_PATH, "w+") as outfile:
+    with open(path, "w+") as outfile:
         json.dump(settings, outfile)
 
-######################################
+
+def init_quality_check():
+    # open settings to pull arguments
+    # TODO: how to create and append to JSON file if none exists or is empty
+
+    # open settings
+    with open(constants.PARSER_CONFIG_FILE_PATH) as json_file:
+        config = json.load(json_file)
+
+    # open QA settings
+    with open(constants.QA_CONFIG_PATH) as json_file:
+        qa_config = json.load(json_file)
+
+    qa_config = quality_checker.pull_date_range(
+        config["outputFilePath"],
+        config["parsedColumnName"],
+        constants.PARSED_COLUMN_FORMAT,
+        qa_config)
+
+    update_settings(qa_config, constants.QA_CONFIG_PATH)
+
+    ######################################
 
 
 def run():

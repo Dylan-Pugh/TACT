@@ -21,6 +21,9 @@ def compile_settings_file(input_string):
     settings_JSON['parsedColumnPosition'] = 2
     settings_JSON['coulumnsToRemove'] = ['date', 'time']
 
+    # For testing
+    settings_JSON['dropDuplicates'] = True
+
     outfile = '/OUT_' + os.path.basename(input_string)
     settings_JSON['outputFilePath'] = os.path.dirname(input_string) + outfile
 
@@ -35,7 +38,7 @@ def find_date_components(field_names, settings_file):
     mn = dy = yr = "Not Found"
 
     date_search_pattern = re.compile('^date.*', re.IGNORECASE)
-    month_search_pattern = re.compile('month(?=s| |$)', re.IGNORECASE)
+    month_search_pattern = re.compile('month|mnth(?=s| |$)', re.IGNORECASE)
     day_search_pattern = re.compile('day(?=s| |$)', re.IGNORECASE)
     year_search_pattern = re.compile('year(?=s| |$)', re.IGNORECASE)
 
@@ -161,23 +164,27 @@ def create_preview(settings):
         time_length = 0
 
         for field in data['dateFields']:
-            date_length += len(csv_row[data['dateFields'][field]])
+            if data['dateFields'][field] != "Not Found":
+                date_length += len(csv_row[data['dateFields'][field]])
 
         if data['timeField'] != "Not Found":
             for field in data['timeField']:
-                time_length += len(csv_row[data['timeField'][field]])
+                if data['timeField'][field] != "Not Found":
+                    time_length += len(csv_row[data['timeField'][field]])
 
         if date_length not in known_date_lengths or time_length not in known_time_lengths:
             current = {}
             # construct new JSON date object by looping through the fields in
             # data['dateFields']
             for key, value in data['dateFields'].items():
-                field_name = "Original_" + value
-                current[field_name] = csv_row[data['dateFields'].get(key)]
+                if value != "Not Found":
+                    field_name = "Original_" + value
+                    current[field_name] = csv_row[data['dateFields'].get(key)]
 
             for key, value in data['timeField'].items():
-                field_name = "Original_" + value
-                current[field_name] = csv_row[data['timeField'].get(key)]
+                if value != "Not Found":
+                    field_name = "Original_" + value
+                    current[field_name] = csv_row[data['timeField'].get(key)]
 
             current['Transformation'] = datetime_parser.create_iso_time(
                 csv_row, data['dateFields'], data['timeField'])

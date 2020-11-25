@@ -40,7 +40,7 @@ class ParserWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.encodingDropDown.setCurrentIndex(
             constants.AVAILABLE_ENCODING_MODES.index(
                 constants.DEFAULT_ENCODING))
-        self.encodingDropDown.currentIndexChanged.connect(self.update_settings)
+        self.select_all_button.clicked.connect(self.toggle_checks)
         self.toQualityButton.clicked.connect(
             lambda: self.switch_window.emit(1))
         # TODO: For testing purposes:
@@ -73,6 +73,7 @@ class ParserWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         logger.info("Displaying Analysis")
         self.display_analysis(self.settings)
 
+        self.select_all_button.setEnabled(True)
         self.processFileButton.setEnabled(True)
 
     def concatenate(self):
@@ -90,6 +91,8 @@ class ParserWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         logger.info("Proceeding with batch processing")
         self.outputFileTextBox.setPlainText(self.input_file_name)
 
+        # Doesn't actually update settings file - overwritten with call to display_analysis, which loads the file
+        # Need to actually update the settings file
         self.settings = controller.analyze(self.input_file_name)
         self.display_analysis(self.settings)
 
@@ -102,11 +105,33 @@ class ParserWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.inputFileTextBox.setPlainText(config["inputPath"])
             self.outputFileTextBox.setPlainText(config["outputFilePath"])
             self.resultsColumnTextBox.setPlainText(config["parsedColumnName"])
+            self.columnPositionSpinBox.setRange(
+                0, len(config["fieldNames"]))
+            self.columnPositionSpinBox.setValue(config["parsedColumnPosition"])
 
             # Handling for multiple date/time fields
             self.dateFieldsTextBox.setPlainText(
                 json.dumps(config["dateFields"]))
             self.timeFieldTextBox.setPlainText(json.dumps(config["timeField"]))
+
+            # Autofills date/time fields into columnsToDelete
+            columns_to_delete_args = ""
+            for key, value in config["dateFields"].items():
+                if config["dateFields"].get(key) != "Not Found":
+                    if columns_to_delete_args == "":
+                        columns_to_delete_args += config["dateFields"].get(key)
+                    else:
+                        columns_to_delete_args += ("," +
+                                                   config["dateFields"].get(key))
+            for key, value in config["timeField"].items():
+                if config["timeField"].get(key) != "Not Found":
+                    if columns_to_delete_args == "":
+                        columns_to_delete_args += config["timeField"].get(key)
+                    else:
+                        columns_to_delete_args += ("," +
+                                                   config["timeField"].get(key))
+            self.columns_to_delete_args.setPlainText(
+                columns_to_delete_args)
 
             # set up table for column names
             column_names = config["fieldNames"]
@@ -116,6 +141,13 @@ class ParserWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             for index, value in enumerate(column_names):
                 self.columnsTable.setItem(
                     0, index, QtWidgets.QTableWidgetItem(value))
+
+            self.normalize_headers_args.setPlainText(
+                json.dumps(config["headerValuesToReplace"]))
+            self.replacement_args.setPlainText(
+                json.dumps(config["rowValuesToReplace"]))
+            # self.columns_to_delete_args.setPlainText(
+            #  ",".join(config["columnsToDelete"]))
 
         self.previewButton.setEnabled(True)
 
@@ -166,6 +198,22 @@ class ParserWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.toQualityButton.setEnabled(True)
 
+    def toggle_checks(self):
+        self.de_dupe_checkBox.setChecked(
+            not self.de_dupe_checkBox.isChecked())
+
+        self.remove_columns_checkBox.setChecked(
+            not self.remove_columns_checkBox.isChecked())
+
+        self.normalize_columns_checkBox.setChecked(
+            not self.normalize_columns_checkBox.isChecked())
+
+        self.replacement_Checkbox.setChecked(
+            not self.replacement_Checkbox.isChecked())
+
+        self.delete_columns_checkBox.setChecked(
+            not self.delete_columns_checkBox.isChecked())
+
     def update_settings(self):
         with open(self.settings, "r") as json_file:
             config = json.load(json_file)
@@ -188,11 +236,26 @@ class ParserWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             config["normalizeHeaders"] = True if self.normalize_columns_checkBox.isChecked(
             ) else False
 
+            config["replaceValues"] = True if self.replacement_Checkbox.isChecked(
+            ) else False
+
+            config["deleteColumns"] = True if self.delete_columns_checkBox.isChecked(
+            ) else False
+
             # write time & date fields as a JSON object
             config["dateFields"] = json.loads(
                 self.dateFieldsTextBox.toPlainText())
             config["timeField"] = json.loads(
                 self.timeFieldTextBox.toPlainText())
+
+            # write replacement args as JSON objects
+            config["headerValuesToReplace"] = json.loads(
+                self.normalize_headers_args.toPlainText())
+            config["rowValuesToReplace"] = json.loads(
+                self.replacement_args.toPlainText())
+
+            config["columnsToDelete"] = self.columns_to_delete_args.toPlainText().split(
+                ',')
 
             controller.update_settings(
                 config, constants.PARSER_CONFIG_FILE_PATH)

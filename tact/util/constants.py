@@ -8,8 +8,27 @@ LOG_FILE_PATH = "/Users/DylanPugh/Development/file-parser-GUI/tact/logs/tact.log
 LOG_LEVELS = ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]
 DEFAULT_LOG_LEVEL = "INFO"
 DEFAULT_PARSED_COLUMN_NAME = "parsed_time"
-PARSED_COLUMN_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
+DEFAULT_PARSED_COLUMN_POSITION = 0
+DEFAULT_PARSED_COLUMN_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
 AVAILABLE_ENCODING_MODES = ["utf-8-sig", "ISO-8859-1"]
 DEFAULT_ENCODING = "utf-8-sig"
-HEADER_CHAR_TO_REPLACE = " "
-HEADER_REPLACEMENT_CHAR = "_"
+DEFAULT_HEADER_REPLACEMENTS = [
+    {
+        "original": " ",
+        "replacement": "_"
+    }
+]
+DEFAULT_ROW_VALUE_REPLACEMENTS = [
+    {
+        "original": "#DIV/0!",
+        "replacement": ""
+    },
+    {
+        "original": "#VALUE!",
+        "replacement": ""
+    },
+    {
+        "original": "#REF!",
+        "replacement": ""
+    }
+]

@@ -18,8 +18,10 @@ def compile_settings_file(input_string):
     settings_JSON['isDirectory'] = False
     settings_JSON['inputFileEncoding'] = constants.DEFAULT_ENCODING
     settings_JSON['parsedColumnName'] = constants.DEFAULT_PARSED_COLUMN_NAME
-    settings_JSON['parsedColumnPosition'] = 2
-    settings_JSON['coulumnsToRemove'] = ['date', 'time']
+    settings_JSON['parsedColumnPosition'] = constants.DEFAULT_PARSED_COLUMN_POSITION
+    settings_JSON['headerValuesToReplace'] = constants.DEFAULT_HEADER_REPLACEMENTS
+    settings_JSON['rowValuesToReplace'] = constants.DEFAULT_ROW_VALUE_REPLACEMENTS
+    settings_JSON['columnsToDelete'] = ["VALUES", "TO", "DELETE"]
 
     # For testing
     settings_JSON['dropDuplicates'] = True

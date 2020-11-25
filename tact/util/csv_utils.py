@@ -6,7 +6,7 @@ def get_duplicate_columns(input_frame):
     :return: List of columns whose contents are duplicates.
     '''
 
-    duplicate_column_names = set()
+    duplicate_column_indices = set()
     # Iterate over all the columns in dataframe
     for x in range(input_frame.shape[1]):
         # Select column at xth index.
@@ -15,16 +15,27 @@ def get_duplicate_columns(input_frame):
         for y in range(x + 1, input_frame.shape[1]):
             # Select column at yth index.
             comparison_column = input_frame.iloc[:, y]
-            # Check if two columns at x 7 y index are equal
+            # Check if two columns at x & y index are equal
             if col.equals(
                     comparison_column) and col.name == comparison_column.name:
-                duplicate_column_names.add(input_frame.columns.values[y])
+                new_columns = input_frame.columns.values
+                new_columns[y] = comparison_column.name + "_DUPE"
+                input_frame.columns = new_columns
 
-    return list(duplicate_column_names)
+                duplicate_column_indices.add(y)
+
+    return list(duplicate_column_indices)
 
 
 def drop_duplicate_columns(input_frame, output_encoding):
-    input_frame.drop(columns=get_duplicate_columns(input_frame))
+    # Workaround to allow duplicate columns in Panadas
+    input_frame.columns = input_frame.columns.str.split('.').str[0]
+
+    columns_to_drop = get_duplicate_columns(input_frame)
+
+    input_frame.drop(
+        input_frame.columns[columns_to_drop],
+        axis=1, inplace=True)
 
 
 def drop_unnamed_columns(input_frame):
@@ -36,6 +47,14 @@ def drop_unnamed_columns(input_frame):
 def replace_char_in_headers(input_frame, char_to_replace, replacement_char):
     input_frame.columns = input_frame.columns.str.replace(
         char_to_replace, replacement_char)
+
+
+def replace_in_rows(input_frame, value_to_replace, replacement_value):
+    input_frame.replace(value_to_replace, replacement_value, inplace=True)
+
+
+def delete_columns(input_frame, columns_to_delete):
+    input_frame.drop(columns=columns_to_delete, inplace=True)
 
 
 def write_out_data_frame(input_frame, output_file, output_encoding):

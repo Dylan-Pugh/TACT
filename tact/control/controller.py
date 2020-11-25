@@ -78,16 +78,21 @@ def process():
                         output_path,
                         config["dateFields"],
                         config["timeField"],
-                        config["parsedColumnName"]
+                        config["parsedColumnName"],
+                        config["parsedColumnPosition"]
                     )
                     logger.debug(ret)
 
                 # Additional fixes:
-                if config["dropDuplicates"] or config["dropEmpty"] or config["normalizeHeaders"]:
+                if config["dropDuplicates"] or config["dropEmpty"] or config[
+                        "normalizeHeaders"] or config["replaceValues"] or config["deleteColumns"]:
                     logger.info(
                         "Additional fixes selected, opening data frame")
 
-                    input_frame = pd.read_csv(current_file)
+                    if os.path.isfile(output_path):
+                        input_frame = pd.read_csv(output_path)
+                    else:
+                        input_frame = pd.read_csv(current_file)
 
                     if config["dropDuplicates"]:
                         logger.info("Removing duplicate columns")
@@ -95,13 +100,32 @@ def process():
                             input_frame, config["inputFileEncoding"])
                     if config["dropEmpty"]:
                         logger.info("Removing empty columns")
-                        csv_utils.drop_unnamed_columns(
-                            input_frame, config["inputFileEncoding"])
+                        csv_utils.drop_unnamed_columns(input_frame)
                     if config["normalizeHeaders"]:
                         logger.info("Replacing characters in column headers")
-                        csv_utils.replace_char_in_headers(
-                            input_frame, constants.HEADER_CHAR_TO_REPLACE,
-                            constants.HEADER_REPLACEMENT_CHAR)
+                        for current_replacement_pair in config["headerValuesToReplace"]:
+                            csv_utils.replace_char_in_headers(
+                                input_frame, current_replacement_pair.get(
+                                    "original"),
+                                current_replacement_pair.get("replacement"))
+                    if config["replaceValues"]:
+                        logger.info("Replacing values in rows")
+                        for current_replacement_pair in config["rowValuesToReplace"]:
+                            csv_utils.replace_in_rows(
+                                input_frame, current_replacement_pair.get(
+                                    "original"),
+                                current_replacement_pair.get("replacement"))
+                    if config["deleteColumns"]:
+                        logger.info(
+                            "Deleting specified columns: " +
+                            ", ".join(config["columnsToDelete"]))
+                        if (all(elem in config["fieldNames"]
+                                for elem in config["columnsToDelete"])):
+                            csv_utils.delete_columns(
+                                input_frame, config["columnsToDelete"])
+                        else:
+                            logger.warning(
+                                "Columns specified for deletion do not exist in file, skipping...")
 
                     # write out file
                     logger.info("Writing out data frame")
@@ -147,7 +171,7 @@ def init_quality_check():
     qa_config = quality_checker.pull_date_range(
         config["outputFilePath"],
         config["parsedColumnName"],
-        constants.PARSED_COLUMN_FORMAT,
+        constants.DEFAULT_PARSED_COLUMN_FORMAT,
         qa_config)
 
     update_settings(qa_config, constants.QA_CONFIG_PATH)

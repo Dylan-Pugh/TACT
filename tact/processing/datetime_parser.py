@@ -2,6 +2,7 @@
 # -*- coding: iso-8859-1 -*-
 import csv
 import datetime
+import copy
 import dateutil
 import dateutil.parser
 from pytz import timezone
@@ -45,7 +46,10 @@ def create_iso_time(csv_row, date_fields, time_field):
                 current_value = time_field.get(current_field)
                 if current_value in csv_row and validator.validate(
                         csv_row[current_value]):
-                    time_string += csv_row[current_value]
+                    if time_string == "":
+                        time_string += csv_row[current_value]
+                    else:
+                        time_string += (":" + csv_row[current_value])
 
         date_time_string = date_string + "T" + time_string
 
@@ -137,6 +141,7 @@ def compile_datetime(
         input_date_fields,
         input_time_fields,
         parsed_column_name,
+        parsed_column_position,
         verbose=False):
     """
     CREATES A reformated OUT_<f>.csv file.
@@ -144,7 +149,7 @@ def compile_datetime(
 
     reader = csv.DictReader(f)
     # NOTE:  fieldnames is just a list, not a dict
-    out_flds = reader.fieldnames
+    out_flds = copy.deepcopy(reader.fieldnames)
 
     # get date column names
     date_fields = input_date_fields
@@ -157,7 +162,7 @@ def compile_datetime(
 
     if verbose:
         print(out_flds)
-    out_flds.append(parsed_column_name)
+    out_flds.insert(parsed_column_position, parsed_column_name)
 
     writer = csv.DictWriter(
         open(outfile, 'w'),

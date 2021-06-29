@@ -119,6 +119,12 @@ def process_file(input_string, input_encoding):
 
     f = open(input_string, encoding=input_encoding)
     logger.debug("Opened file: %s", input_string)
+
+    # # optionally skipping header rows
+    # if settings_JSON['headerRow']:
+    #     for i in range(settings_JSON['headerRow'] - 1):
+    #         f.next()
+
     reader = csv.DictReader(f)
     # get field names and update
     field_names = reader.fieldnames

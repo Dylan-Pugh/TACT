@@ -7,6 +7,7 @@ import pandas as pd
 import tact.processing.analyzer as analyzer
 import tact.processing.datetime_parser as parser
 import tact.processing.quality_checker as quality_checker
+import tact.processing.xml_generator as xml_generator
 import tact.util.concat_CSV
 import tact.util.constants as constants
 import tact.util.csv_utils as csv_utils
@@ -177,6 +178,25 @@ def init_quality_check():
     update_settings(qa_config, constants.QA_CONFIG_PATH)
 
     ######################################
+
+
+def get_xml_params(edd_type):
+    logger.info("EDDType selected, updating settings")
+    with open(constants.XML_LIB_PATH) as json_file:
+        xml_lib = json.load(json_file)
+
+    with open(constants.XML_CONFIG_PATH) as json_file:
+        xml_config = json.load(json_file)
+
+    if edd_type in xml_lib and edd_type in xml_lib["EDDTypes"]:
+        xml_config["eddType"] = edd_type
+        xml_config["parameters"] = xml_lib[edd_type].get("parameters")
+
+    update_settings(xml_config, constants.XML_CONFIG_PATH)
+
+
+def generate_xml():
+    xml_generator.invoke(constants.XML_CONFIG_PATH)
 
 
 def run():

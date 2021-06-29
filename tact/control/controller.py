@@ -23,9 +23,11 @@ def get_settings_json(config_type):
 
     try:
         # open settings
-        with open(constants.config_type) as json_file:
-            logger.info("File found: %s", constants.config_type)
-            return json.dump(json_file)
+        with open(constants.CONFIG_FILE_PATHS[config_type]) as json_file:
+            logger.info(
+                "File found: %s",
+                constants.CONFIG_FILE_PATHS[config_type])
+            return json.load(json_file)
     except (KeyError, FileNotFoundError) as ex:
         logger.error(str(ex))
         logger.error("Config file: %s not found.", config_type)
@@ -167,10 +169,13 @@ def update_settings(config_type, json_to_apply):
     logger.info("Updating settings")
     try:
         # open settings
-        with open(constants.config_type, "w+") as outfile:
-            logger.info("File found: %s", constants.config_type)
+        with open(constants.CONFIG_FILE_PATHS[config_type], 'w') as outfile:
+            logger.info(
+                "File found: %s",
+                constants.CONFIG_FILE_PATHS[config_type])
+            data = json.loads(json_to_apply)
             # write out settings file
-            json.dump(json_to_apply, outfile)
+            json.dump(data, outfile, indent=6)
         return True
     except (KeyError, FileNotFoundError) as ex:
         logger.error(str(ex))

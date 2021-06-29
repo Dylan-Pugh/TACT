@@ -14,8 +14,21 @@ import tact.util.csv_utils as csv_utils
 from tact.control.logging_controller import \
     LoggingController as loggingController
 
-# interacts with GUI, calls analyzer, parser, and quality control
+# interacts with API, calls analyzer, parser, and quality control
 logger = loggingController.get_logger(__name__)
+
+
+def get_settings_json(config_type):
+    logger.info("Fetching target config: %s", config_type)
+
+    try:
+        # open settings
+        with open(constants.config_type) as json_file:
+            logger.info("File found: %s", constants.config_type)
+            return json.dump(json_file)
+    except (KeyError, FileNotFoundError) as ex:
+        logger.error(str(ex))
+        logger.error("Config file: %s not found.", config_type)
 
 
 def analyze(input_file):
@@ -150,11 +163,18 @@ def concat_files(input_path):
         input_path, config.get("inputFileEncoding"))
 
 
-def update_settings(settings, path):
+def update_settings(config_type, json_to_apply):
     logger.info("Updating settings")
-    # write out settings file
-    with open(path, "w+") as outfile:
-        json.dump(settings, outfile)
+    try:
+        # open settings
+        with open(constants.config_type, "w+") as outfile:
+            logger.info("File found: %s", constants.config_type)
+            # write out settings file
+            json.dump(json_to_apply, outfile)
+        return True
+    except (KeyError, FileNotFoundError) as ex:
+        logger.error(str(ex))
+        logger.error("Config file: %s not found.", config_type)
 
 
 def init_quality_check():

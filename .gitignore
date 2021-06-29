@@ -142,3 +142,9 @@ cython_debug/
 
 # Folder configuration files
 .DS_Store
+
+# Config files
+tact/config
+
+# Test files
+testing/testData

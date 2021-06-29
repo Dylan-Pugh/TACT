@@ -1,265 +1,265 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>QAWindow</class>
- <widget class="QMainWindow" name="QAWindow">
-  <property name="geometry">
-   <rect>
-    <x>0</x>
-    <y>0</y>
-    <width>1393</width>
-    <height>616</height>
-   </rect>
-  </property>
-  <property name="windowTitle">
-   <string>MainWindow</string>
-  </property>
-  <widget class="QWidget" name="centralwidget">
-   <property name="enabled">
-    <bool>true</bool>
-   </property>
-   <property name="autoFillBackground">
-    <bool>false</bool>
-   </property>
-   <layout class="QVBoxLayout" name="verticalLayout">
-    <item>
-     <layout class="QGridLayout" name="gridLayout_2" rowstretch="0">
-      <property name="sizeConstraint">
-       <enum>QLayout::SetMaximumSize</enum>
-      </property>
-      <item row="0" column="3">
-       <widget class="QTextBrowser" name="MaxDateBox">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
+    <class>QAWindow</class>
+    <widget class="QMainWindow" name="QAWindow">
+        <property name="geometry">
+            <rect>
+                <x>0</x>
+                <y>0</y>
+                <width>1393</width>
+                <height>616</height>
+            </rect>
         </property>
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>27</height>
-         </size>
+        <property name="windowTitle">
+            <string>MainWindow</string>
         </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>27</height>
-         </size>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QTextBrowser" name="MinDateBox">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>27</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>27</height>
-         </size>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="minDateLabel">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>27</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>27</height>
-         </size>
-        </property>
-        <property name="text">
-         <string>Min Date</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="2">
-       <widget class="QLabel" name="MaxDateLabel">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>27</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>27</height>
-         </size>
-        </property>
-        <property name="text">
-         <string>Max Date</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
-    <item>
-     <widget class="Line" name="checkDivider">
-      <property name="maximumSize">
-       <size>
-        <width>16777215</width>
-        <height>27</height>
-       </size>
-      </property>
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <layout class="QHBoxLayout" name="horizontalLayout">
-      <item>
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>TextLabel</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="label">
-        <property name="text">
-         <string>TextLabel</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
-    <item>
-     <widget class="QListWidget" name="checksList">
-      <property name="uniformItemSizes">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QTableWidget" name="resultsTable"/>
-    </item>
-    <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_2">
-      <item>
-       <layout class="QHBoxLayout" name="progressLayout">
-        <item>
-         <widget class="QLabel" name="progressLabel">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>16777215</width>
-            <height>27</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>Progress:</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QProgressBar" name="checkProgressBar">
-          <property name="maximumSize">
-           <size>
-            <width>16777215</width>
-            <height>27</height>
-           </size>
-          </property>
-          <property name="value">
-           <number>24</number>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <widget class="QLabel" name="checksComplete">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>40</width>
-          <height>40</height>
-         </size>
-        </property>
-        <property name="text">
-         <string/>
-        </property>
-        <property name="pixmap">
-         <pixmap>../../../../Downloads/check-mark-button-emoji-clipart-xl.png</pixmap>
-        </property>
-        <property name="scaledContents">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
-    <item>
-     <layout class="QHBoxLayout" name="buttonLayout">
-      <item>
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item>
-       <widget class="QPushButton" name="backButton">
-        <property name="text">
-         <string>&lt;- Back</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="continueButton">
-        <property name="text">
-         <string>Continue To XML Generation</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
-   </layout>
-  </widget>
-  <widget class="QStatusBar" name="statusbar"/>
- </widget>
- <resources/>
- <connections/>
+        <widget class="QWidget" name="centralwidget">
+            <property name="enabled">
+                <bool>true</bool>
+            </property>
+            <property name="autoFillBackground">
+                <bool>false</bool>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout">
+                <item>
+                    <layout class="QGridLayout" name="gridLayout_2" rowstretch="0">
+                        <property name="sizeConstraint">
+                            <enum>QLayout::SetMaximumSize</enum>
+                        </property>
+                        <item row="0" column="3">
+                            <widget class="QTextBrowser" name="MaxDateBox">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="minimumSize">
+                                    <size>
+                                        <width>0</width>
+                                        <height>27</height>
+                                    </size>
+                                </property>
+                                <property name="maximumSize">
+                                    <size>
+                                        <width>16777215</width>
+                                        <height>27</height>
+                                    </size>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="0" column="1">
+                            <widget class="QTextBrowser" name="MinDateBox">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="minimumSize">
+                                    <size>
+                                        <width>0</width>
+                                        <height>27</height>
+                                    </size>
+                                </property>
+                                <property name="maximumSize">
+                                    <size>
+                                        <width>16777215</width>
+                                        <height>27</height>
+                                    </size>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="0" column="0">
+                            <widget class="QLabel" name="minDateLabel">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="minimumSize">
+                                    <size>
+                                        <width>0</width>
+                                        <height>27</height>
+                                    </size>
+                                </property>
+                                <property name="maximumSize">
+                                    <size>
+                                        <width>16777215</width>
+                                        <height>27</height>
+                                    </size>
+                                </property>
+                                <property name="text">
+                                    <string>Min Date</string>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="0" column="2">
+                            <widget class="QLabel" name="MaxDateLabel">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="minimumSize">
+                                    <size>
+                                        <width>0</width>
+                                        <height>27</height>
+                                    </size>
+                                </property>
+                                <property name="maximumSize">
+                                    <size>
+                                        <width>16777215</width>
+                                        <height>27</height>
+                                    </size>
+                                </property>
+                                <property name="text">
+                                    <string>Max Date</string>
+                                </property>
+                            </widget>
+                        </item>
+                    </layout>
+                </item>
+                <item>
+                    <widget class="Line" name="checkDivider">
+                        <property name="maximumSize">
+                            <size>
+                                <width>16777215</width>
+                                <height>27</height>
+                            </size>
+                        </property>
+                        <property name="orientation">
+                            <enum>Qt::Horizontal</enum>
+                        </property>
+                    </widget>
+                </item>
+                <item>
+                    <layout class="QHBoxLayout" name="horizontalLayout">
+                        <item>
+                            <widget class="QLabel" name="label_2">
+                                <property name="text">
+                                    <string>TextLabel</string>
+                                </property>
+                            </widget>
+                        </item>
+                        <item>
+                            <widget class="QLabel" name="label">
+                                <property name="text">
+                                    <string>TextLabel</string>
+                                </property>
+                            </widget>
+                        </item>
+                    </layout>
+                </item>
+                <item>
+                    <widget class="QListWidget" name="checksList">
+                        <property name="uniformItemSizes">
+                            <bool>true</bool>
+                        </property>
+                    </widget>
+                </item>
+                <item>
+                    <widget class="QTableWidget" name="resultsTable"/>
+                </item>
+                <item>
+                    <layout class="QHBoxLayout" name="horizontalLayout_2">
+                        <item>
+                            <layout class="QHBoxLayout" name="progressLayout">
+                                <item>
+                                    <widget class="QLabel" name="progressLabel">
+                                        <property name="sizePolicy">
+                                            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                                                <horstretch>0</horstretch>
+                                                <verstretch>0</verstretch>
+                                            </sizepolicy>
+                                        </property>
+                                        <property name="maximumSize">
+                                            <size>
+                                                <width>16777215</width>
+                                                <height>27</height>
+                                            </size>
+                                        </property>
+                                        <property name="text">
+                                            <string>Progress:</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item>
+                                    <widget class="QProgressBar" name="checkProgressBar">
+                                        <property name="maximumSize">
+                                            <size>
+                                                <width>16777215</width>
+                                                <height>27</height>
+                                            </size>
+                                        </property>
+                                        <property name="value">
+                                            <number>24</number>
+                                        </property>
+                                    </widget>
+                                </item>
+                            </layout>
+                        </item>
+                        <item>
+                            <widget class="QLabel" name="checksComplete">
+                                <property name="enabled">
+                                    <bool>false</bool>
+                                </property>
+                                <property name="maximumSize">
+                                    <size>
+                                        <width>40</width>
+                                        <height>40</height>
+                                    </size>
+                                </property>
+                                <property name="text">
+                                    <string/>
+                                </property>
+                                <property name="pixmap">
+                                    <pixmap>../../../../Downloads/check-mark-button-emoji-clipart-xl.png</pixmap>
+                                </property>
+                                <property name="scaledContents">
+                                    <bool>true</bool>
+                                </property>
+                            </widget>
+                        </item>
+                    </layout>
+                </item>
+                <item>
+                    <layout class="QHBoxLayout" name="buttonLayout">
+                        <item>
+                            <spacer name="horizontalSpacer">
+                                <property name="orientation">
+                                    <enum>Qt::Horizontal</enum>
+                                </property>
+                                <property name="sizeHint" stdset="0">
+                                    <size>
+                                        <width>40</width>
+                                        <height>20</height>
+                                    </size>
+                                </property>
+                            </spacer>
+                        </item>
+                        <item>
+                            <widget class="QPushButton" name="backButton">
+                                <property name="text">
+                                    <string>&lt;- Back</string>
+                                </property>
+                            </widget>
+                        </item>
+                        <item>
+                            <widget class="QPushButton" name="continueButton">
+                                <property name="text">
+                                    <string>Continue To XML Generation</string>
+                                </property>
+                            </widget>
+                        </item>
+                    </layout>
+                </item>
+            </layout>
+        </widget>
+        <widget class="QStatusBar" name="statusbar"/>
+    </widget>
+    <resources/>
+    <connections/>
 </ui>

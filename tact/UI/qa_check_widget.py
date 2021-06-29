@@ -8,12 +8,14 @@ Ui_Widget, QtWidgets.QWidget = uic.loadUiType(qt_creator_file)
 
 class QACheckWidget(QtWidgets.QListWidgetItem, Ui_Widget):
     def __init__(self, enabled, label, description, arguments):
-        super().__init__()
+        QtWidgets.QListWidgetItem.__init__(self)
         Ui_Widget.__init__(self)
         self.setupUi(self)
+        self.init_UI(self)
 
-        self.enabled_checkbox.setChecked(enabled)
-        self.check_label.setText(label)
-        self.description.setText(description)
-        self.arguments.setPlainText(json.dumps(arguments))
+    def init_UI(self):
+        self.enabled_checkbox.setChecked(self.enabled)
+        self.check_label.setText(self.label)
+        self.description.setText(self.description)
+        self.arguments.setPlainText(json.dumps(self.arguments))
         self.pass_icon.hide()

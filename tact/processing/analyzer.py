@@ -3,9 +3,9 @@ import json
 import os
 import re
 
-import tact.processingScripts.datetime_parser as datetime_parser
+import tact.processing.datetime_parser as datetime_parser
 import tact.util.constants as constants
-from tact.control.loggingController import \
+from tact.control.logging_controller import \
     LoggingController as loggingController
 
 logger = loggingController.get_logger(__name__)
@@ -18,8 +18,13 @@ def compile_settings_file(input_string):
     settings_JSON['isDirectory'] = False
     settings_JSON['inputFileEncoding'] = constants.DEFAULT_ENCODING
     settings_JSON['parsedColumnName'] = constants.DEFAULT_PARSED_COLUMN_NAME
-    settings_JSON['parsedColumnPosition'] = 2
-    settings_JSON['coulumnsToRemove'] = ['date', 'time']
+    settings_JSON['parsedColumnPosition'] = constants.DEFAULT_PARSED_COLUMN_POSITION
+    settings_JSON['headerValuesToReplace'] = constants.DEFAULT_HEADER_REPLACEMENTS
+    settings_JSON['rowValuesToReplace'] = constants.DEFAULT_ROW_VALUE_REPLACEMENTS
+    settings_JSON['columnsToDelete'] = ["VALUES", "TO", "DELETE"]
+
+    # For testing
+    settings_JSON['dropDuplicates'] = True
 
     outfile = '/OUT_' + os.path.basename(input_string)
     settings_JSON['outputFilePath'] = os.path.dirname(input_string) + outfile
@@ -35,7 +40,7 @@ def find_date_components(field_names, settings_file):
     mn = dy = yr = "Not Found"
 
     date_search_pattern = re.compile('^date.*', re.IGNORECASE)
-    month_search_pattern = re.compile('month(?=s| |$)', re.IGNORECASE)
+    month_search_pattern = re.compile('month|mnth(?=s| |$)', re.IGNORECASE)
     day_search_pattern = re.compile('day(?=s| |$)', re.IGNORECASE)
     year_search_pattern = re.compile('year(?=s| |$)', re.IGNORECASE)
 
@@ -114,6 +119,12 @@ def process_file(input_string, input_encoding):
 
     f = open(input_string, encoding=input_encoding)
     logger.debug("Opened file: %s", input_string)
+
+    # # optionally skipping header rows
+    # if settings_JSON['headerRow']:
+    #     for i in range(settings_JSON['headerRow'] - 1):
+    #         f.next()
+
     reader = csv.DictReader(f)
     # get field names and update
     field_names = reader.fieldnames
@@ -161,23 +172,27 @@ def create_preview(settings):
         time_length = 0
 
         for field in data['dateFields']:
-            date_length += len(csv_row[data['dateFields'][field]])
+            if data['dateFields'][field] != "Not Found":
+                date_length += len(csv_row[data['dateFields'][field]])
 
         if data['timeField'] != "Not Found":
             for field in data['timeField']:
-                time_length += len(csv_row[data['timeField'][field]])
+                if data['timeField'][field] != "Not Found":
+                    time_length += len(csv_row[data['timeField'][field]])
 
         if date_length not in known_date_lengths or time_length not in known_time_lengths:
             current = {}
             # construct new JSON date object by looping through the fields in
             # data['dateFields']
             for key, value in data['dateFields'].items():
-                field_name = "Original_" + value
-                current[field_name] = csv_row[data['dateFields'].get(key)]
+                if value != "Not Found":
+                    field_name = "Original_" + value
+                    current[field_name] = csv_row[data['dateFields'].get(key)]
 
             for key, value in data['timeField'].items():
-                field_name = "Original_" + value
-                current[field_name] = csv_row[data['timeField'].get(key)]
+                if value != "Not Found":
+                    field_name = "Original_" + value
+                    current[field_name] = csv_row[data['timeField'].get(key)]
 
             current['Transformation'] = datetime_parser.create_iso_time(
                 csv_row, data['dateFields'], data['timeField'])

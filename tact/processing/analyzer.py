@@ -19,6 +19,12 @@ def compile_settings_file(input_string):
     settings_JSON['inputFileEncoding'] = constants.DEFAULT_ENCODING
     settings_JSON['parsedColumnName'] = constants.DEFAULT_PARSED_COLUMN_NAME
     settings_JSON['parsedColumnPosition'] = constants.DEFAULT_PARSED_COLUMN_POSITION
+    settings_JSON['dropDuplicates'] = True
+    settings_JSON['fixTimes'] = True
+    settings_JSON['dropEmpty'] = True
+    settings_JSON['normalizeHeaders'] = True
+    settings_JSON['replaceValues'] = True
+    settings_JSON['deleteColumns'] = True
     settings_JSON['headerValuesToReplace'] = constants.DEFAULT_HEADER_REPLACEMENTS
     settings_JSON['rowValuesToReplace'] = constants.DEFAULT_ROW_VALUE_REPLACEMENTS
     settings_JSON['columnsToDelete'] = ["VALUES", "TO", "DELETE"]

@@ -27,7 +27,35 @@ class Config(Resource):
             return {"message": "Settings update failed."}, 404
 
 
+class Analysis(Resource):
+    def get(self):
+        if controller.analyze():
+            return {"message": "Analysis complete."}, 200
+        else:
+            return {"message": "Analysis failed."}, 404
+
+
+class Preview(Resource):
+    def get(self):
+        result = controller.generate_preview()
+        if result:
+            return {"message": "Preview generated.", "data": result}, 200
+        else:
+            return {"message": "Preview generation failed."}, 404
+
+
+class Process(Resource):
+    def get(self):
+        if controller.process():
+            return {"message": "File processing complete."}, 200
+        else:
+            return {"message": "File processing failed."}, 404
+
+
 api.add_resource(Config, '/config/<string:config_type>')  # add endpoints
+api.add_resource(Analysis, '/analysis')
+api.add_resource(Preview, '/preview')
+api.add_resource(Process, '/process')
 
 if __name__ == '__main__':
     app.run()  # run our Flask app

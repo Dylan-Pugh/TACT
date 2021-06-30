@@ -33,21 +33,26 @@ def get_settings_json(config_type):
         logger.error("Config file: %s not found.", config_type)
 
 
-def analyze(input_file):
+def analyze():
     # open settings
     with open(constants.PARSER_CONFIG_FILE_PATH) as json_file:
         config = json.load(json_file)
 
-    logger.debug("Analyzing input file: %s", input_file)
-    if analyzer.process_file(input_file, config.get("inputFileEncoding")):
+    logger.debug("Analyzing input file: %s", config.get("inputPath"))
+    if analyzer.process_file(
+            config.get("inputPath"),
+            config.get("inputFileEncoding")):
         # return path to settings file
         return constants.PARSER_CONFIG_FILE_PATH
     else:
         logger.error("Failed to Create Settings JSON")
 
 
-def generate_preview(settings):
-    return analyzer.create_preview(settings)
+def generate_preview():
+    # open settings
+    with open(constants.PARSER_CONFIG_FILE_PATH) as json_file:
+        config = json.load(json_file)
+        return analyzer.create_preview(config)
 
 
 def process():
@@ -149,6 +154,7 @@ def process():
                         input_frame, output_path, config["inputFileEncoding"])
 
     logger.info("Processing complete")
+    return True
 
 
 def is_directory(input_path):

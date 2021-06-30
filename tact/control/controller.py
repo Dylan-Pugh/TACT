@@ -8,7 +8,6 @@ import tact.processing.analyzer as analyzer
 import tact.processing.datetime_parser as parser
 import tact.processing.quality_checker as quality_checker
 import tact.processing.xml_generator as xml_generator
-import tact.util.concat_CSV
 import tact.util.constants as constants
 import tact.util.csv_utils as csv_utils
 from tact.control.logging_controller import \
@@ -28,6 +27,23 @@ def get_settings_json(config_type):
                 "File found: %s",
                 constants.CONFIG_FILE_PATHS[config_type])
             return json.load(json_file)
+    except (KeyError, FileNotFoundError) as ex:
+        logger.error(str(ex))
+        logger.error("Config file: %s not found.", config_type)
+
+
+def update_settings(config_type, json_to_apply):
+    logger.info("Updating settings")
+    try:
+        # open settings
+        with open(constants.CONFIG_FILE_PATHS[config_type], 'w') as outfile:
+            logger.info(
+                "File found: %s",
+                constants.CONFIG_FILE_PATHS[config_type])
+            data = json.loads(json_to_apply)
+            # write out settings file
+            json.dump(data, outfile, indent=6)
+        return True
     except (KeyError, FileNotFoundError) as ex:
         logger.error(str(ex))
         logger.error("Config file: %s not found.", config_type)
@@ -167,25 +183,8 @@ def concat_files(input_path):
         config = json.load(json_file)
 
     logger.info("Concatenating files in directory: %s", input_path)
-    return tact.util.concatCSV.concat_input_files(
+    return csv_utils.concat_input_files(
         input_path, config.get("inputFileEncoding"))
-
-
-def update_settings(config_type, json_to_apply):
-    logger.info("Updating settings")
-    try:
-        # open settings
-        with open(constants.CONFIG_FILE_PATHS[config_type], 'w') as outfile:
-            logger.info(
-                "File found: %s",
-                constants.CONFIG_FILE_PATHS[config_type])
-            data = json.loads(json_to_apply)
-            # write out settings file
-            json.dump(data, outfile, indent=6)
-        return True
-    except (KeyError, FileNotFoundError) as ex:
-        logger.error(str(ex))
-        logger.error("Config file: %s not found.", config_type)
 
 
 def init_quality_check():
@@ -243,7 +242,7 @@ def run():
 
     # created combined file if input is a directory
     if os.path.isdir(args.csv_file):
-        infile = tact.util.concatCSV.concat_input_files(
+        infile = csv_utils.concat_input_files(
             args.csv_file, args.encoding)
     elif os.path.isfile(args.csv_file):
         infile = args.csv_file

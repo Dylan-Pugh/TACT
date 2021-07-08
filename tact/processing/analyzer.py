@@ -19,6 +19,12 @@ def compile_settings_file(input_string):
     settings_JSON['inputFileEncoding'] = constants.DEFAULT_ENCODING
     settings_JSON['parsedColumnName'] = constants.DEFAULT_PARSED_COLUMN_NAME
     settings_JSON['parsedColumnPosition'] = constants.DEFAULT_PARSED_COLUMN_POSITION
+    settings_JSON['dropDuplicates'] = True
+    settings_JSON['fixTimes'] = True
+    settings_JSON['dropEmpty'] = True
+    settings_JSON['normalizeHeaders'] = True
+    settings_JSON['replaceValues'] = True
+    settings_JSON['deleteColumns'] = True
     settings_JSON['headerValuesToReplace'] = constants.DEFAULT_HEADER_REPLACEMENTS
     settings_JSON['rowValuesToReplace'] = constants.DEFAULT_ROW_VALUE_REPLACEMENTS
     settings_JSON['columnsToDelete'] = ["VALUES", "TO", "DELETE"]
@@ -150,59 +156,60 @@ def process_file(input_string, input_encoding):
 # get the length of all records
 # call create_iso_time(csv_row, dateFields, timeField)
 # output the results to a JSON file and return
-def create_preview(settings):
+def create_preview(config):
     logger.info("Generating preview")
 
-    # parse settings file
-    with open(settings) as json_file:
-        data = json.load(json_file)
+    # parse preview file file
+    with open(config['pathForPreview'], encoding=config['inputFileEncoding']) as f:
+        reader = csv.DictReader(f)
 
-    f = open(data['pathForPreview'], encoding=data['inputFileEncoding'])
-    reader = csv.DictReader(f)
+        sample_JSON = {}
+        sample_JSON['samples'] = []
+        known_date_lengths = []
+        known_time_lengths = []
+        # TODO: add handling for multiple date fields
+        # take sum of characters in all date fields
+        for csv_row in reader:
+            # set lengths
+            date_length = 0
+            time_length = 0
 
-    sample_JSON = {}
-    sample_JSON['samples'] = []
-    known_date_lengths = []
-    known_time_lengths = []
-    # TODO: add handling for multiple date fields
-    # take sum of characters in all date fields
-    for csv_row in reader:
-        # set lengths
-        date_length = 0
-        time_length = 0
+            if config['dateFields'] != "Not Found":
+                for field in config['dateFields']:
+                    if config['dateFields'][field] != "Not Found":
+                        date_length += len(csv_row[config['dateFields'][field]])
 
-        for field in data['dateFields']:
-            if data['dateFields'][field] != "Not Found":
-                date_length += len(csv_row[data['dateFields'][field]])
+            if config['timeField'] != "Not Found":
+                for field in config['timeField']:
+                    if config['timeField'][field] != "Not Found":
+                        time_length += len(
+                            csv_row[config['timeField'][field]])
 
-        if data['timeField'] != "Not Found":
-            for field in data['timeField']:
-                if data['timeField'][field] != "Not Found":
-                    time_length += len(csv_row[data['timeField'][field]])
+            if date_length not in known_date_lengths or time_length not in known_time_lengths:
+                current = {}
+                # construct new JSON date object by looping through the fields in
+                # config['dateFields']
+                for key, value in config['dateFields'].items():
+                    if value != "Not Found":
+                        field_name = "Original_" + value
+                        current[field_name] = csv_row[config['dateFields'].get(
+                            key)]
 
-        if date_length not in known_date_lengths or time_length not in known_time_lengths:
-            current = {}
-            # construct new JSON date object by looping through the fields in
-            # data['dateFields']
-            for key, value in data['dateFields'].items():
-                if value != "Not Found":
-                    field_name = "Original_" + value
-                    current[field_name] = csv_row[data['dateFields'].get(key)]
+                for key, value in config['timeField'].items():
+                    if value != "Not Found":
+                        field_name = "Original_" + value
+                        current[field_name] = csv_row[config['timeField'].get(
+                            key)]
 
-            for key, value in data['timeField'].items():
-                if value != "Not Found":
-                    field_name = "Original_" + value
-                    current[field_name] = csv_row[data['timeField'].get(key)]
+                current['Transformation'] = datetime_parser.create_iso_time(
+                    csv_row, config['dateFields'], config['timeField'])
+                sample_JSON['samples'].append(current)
 
-            current['Transformation'] = datetime_parser.create_iso_time(
-                csv_row, data['dateFields'], data['timeField'])
-            sample_JSON['samples'].append(current)
+                # add relevant field length to known values
+                if date_length not in known_date_lengths:
+                    known_date_lengths.append(date_length)
 
-            # add relevant field length to known values
-            if date_length not in known_date_lengths:
-                known_date_lengths.append(date_length)
-
-            if time_length not in known_time_lengths:
-                known_time_lengths.append(time_length)
+                if time_length not in known_time_lengths:
+                    known_time_lengths.append(time_length)
 
     return sample_JSON

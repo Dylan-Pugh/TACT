@@ -1,3 +1,8 @@
+import os
+import glob
+import pandas as pd
+
+
 def get_duplicate_columns(input_frame):
     '''
     Get a list of duplicate columns.
@@ -59,3 +64,18 @@ def delete_columns(input_frame, columns_to_delete):
 
 def write_out_data_frame(input_frame, output_file, output_encoding):
     input_frame.to_csv(output_file, index=False, encoding=output_encoding)
+
+
+def concat_input_files(inputDirectory, output_encoding):
+    os.chdir(inputDirectory)
+    extension = 'csv'
+    out_path = inputDirectory + '/combined.' + extension
+    all_filenames = [i for i in glob.glob('*.{}'.format(extension))]
+
+    # combine all files in the list
+    combined_csv = pd.concat([pd.read_csv(f) for f in all_filenames])
+    combined_csv.drop_duplicates(keep='first', inplace=True)
+
+    # export to csv
+    combined_csv.to_csv(out_path, index=False, encoding=output_encoding)
+    return out_path

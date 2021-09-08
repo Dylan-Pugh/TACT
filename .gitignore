@@ -144,7 +144,22 @@ cython_debug/
 .DS_Store
 
 # Config files
-tact/config
+tact/config/*
 
 # Test files
 testing/testData
+
+# UI Files
+tact/UI/.yarn
+tact/UI/.yarnclean
+tact/UI/.yarnrc.yml
+tact/UI/yarn.lock
+tact/UI/README.md
+tact/UI/build
+tact/UI/.DS_Store
+tact/UI/dist/
+tact/UI/node_modules/
+tact/UI/thumbs.db
+tact/UI/.idea/
+tact/UI/.pnp.js
+

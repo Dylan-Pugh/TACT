@@ -16,6 +16,7 @@ def compile_settings_file(input_string):
     settings_JSON['inputPath'] = input_string
     settings_JSON['pathForPreview'] = input_string
     settings_JSON['isDirectory'] = False
+    settings_JSON['concatFiles'] = False
     settings_JSON['inputFileEncoding'] = constants.DEFAULT_ENCODING
     settings_JSON['parsedColumnName'] = constants.DEFAULT_PARSED_COLUMN_NAME
     settings_JSON['parsedColumnPosition'] = constants.DEFAULT_PARSED_COLUMN_POSITION
@@ -115,8 +116,22 @@ def process_file(input_string, input_encoding):
 
     # if isDirectory, get path to first file in dir, and proceed
     if settings_JSON['isDirectory']:
-        input_string = settings_JSON['inputPath'] + \
-            "/" + os.listdir(settings_JSON['inputPath'])[0]
+        #remove trailing slash
+        if settings_JSON['inputPath'].endswith('/'):
+            settings_JSON['inputPath'] = settings_JSON['inputPath'].removesuffix('/')
+
+        # gets list of files, ignoring hidden
+        raw_files = [
+            f for f in os.listdir(settings_JSON["inputPath"])
+            if not f.startswith(".")
+        ]
+        # add the full path back in
+        file_paths = list(
+            map(lambda current: settings_JSON["inputPath"] + "/" + current, raw_files)
+        )
+
+        input_string = file_paths[0]
+
         settings_JSON['pathForPreview'] = input_string
 
         logger.info(
@@ -141,11 +156,11 @@ def process_file(input_string, input_encoding):
     find_time_field(field_names, settings_JSON)
 
     # write out settings file
-    with open(constants.PARSER_CONFIG_FILE_PATH, 'w') as outfile:
+    with open(constants.CONFIG_FILE_PATHS['parser'], 'w') as outfile:
         json.dump(settings_JSON, outfile)
         logger.info(
             "Settings written to: %s",
-            constants.PARSER_CONFIG_FILE_PATH)
+            constants.CONFIG_FILE_PATHS['parser'])
 
     return True
 

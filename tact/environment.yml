@@ -2,9 +2,11 @@ name: tact
 channels:
   - conda-forge
 dependencies:
+  - python=3.9
+  - pip
   - ioos_qc
-  - streamlit
   - pandas
   - pandas-profiling
-  - streamlit-pandas-profiling
   - xarray
+  - pip:
+      - briefcase

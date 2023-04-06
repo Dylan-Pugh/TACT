@@ -1,0 +1,10 @@
+name: tact
+channels:
+  - conda-forge
+dependencies:
+  - ioos_qc
+  - streamlit
+  - pandas
+  - pandas-profiling
+  - streamlit-pandas-profiling
+  - xarray

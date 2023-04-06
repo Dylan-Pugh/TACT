@@ -3,8 +3,9 @@ QA_UI_FILE_PATH = "/Users/DylanPugh/Development/TACT/tact/UI/qualityCheckGUI.ui"
 QA_CHECK_WIDGET_UI_FILE_PATH = "/Users/DylanPugh/Development/TACT/tact/UI/qa_check_widget.ui"
 XML_UI_FILE_PATH = "/Users/DylanPugh/Development/TACT/tact/UI/xmlGenerationGUI.ui"
 FILLABLE_FIELD_WIDGET_UI_FILE_PATH = "/Users/DylanPugh/Development/TACT/tact/UI/fillable_field_widget.ui"
+#CONFIG_TYPES = {"parser": "parser", "QA": "QA", "log": "log"}
 CONFIG_FILE_PATHS = {
-    "PARSER_CONFIG_FILE_PATH": "/Users/DylanPugh/Development/TACT/tact/config/parserConfig.JSON",
+    "parser": "/Users/DylanPugh/Development/TACT/tact/config/parserConfig.JSON",
     "LOG_CONFIG_PATH": "/Users/DylanPugh/Development/TACT/tact/config/logConfig.JSON",
     "QA_CONFIG_PATH": "/Users/DylanPugh/Development/TACT/tact/config/qaConfig.JSON",
     "XML_CONFIG_PATH": "/Users/DylanPugh/Development/TACT/tact/config/generateDatasetsXmlConfig.JSON"

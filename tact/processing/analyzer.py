@@ -163,11 +163,15 @@ def create_preview(config):
     with open(config['pathForPreview'], encoding=config['inputFileEncoding']) as f:
         reader = csv.DictReader(f)
 
+        # skipping n rows to get to data
+        next(reader)
+
         sample_JSON = {}
         sample_JSON['samples'] = []
         known_date_lengths = []
         known_time_lengths = []
         # TODO: add handling for multiple date fields
+        # TODO: add option to start processing at arbitary line (in case data doesn't start on line #2)
         # take sum of characters in all date fields
         for csv_row in reader:
             # set lengths

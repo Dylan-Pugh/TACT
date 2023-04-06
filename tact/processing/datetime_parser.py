@@ -70,8 +70,26 @@ def create_iso_time(csv_row, date_fields, time_field):
                 csv_row[date_fields.get("date")]):
             date = csv_row[date_fields.get("date")]
             if len(date) == 8:
-                # Standard yyyymmdd format, just split the String
-                [mn, dy, yr] = [date[4:6], date[6:8], date[0:4]]
+                if (int(date[4:6]) > 12):
+                    # Assumes yyyymmdd format, checks validity of 'month'
+                    # if greater than 12, date format is: mmddyyyy
+                    [mn, dy, yr] = [date[0:2], date[2:4], date[4:8]]
+                else:
+                    # Standard yyyymmdd format, just split the String
+                    [mn, dy, yr] = [date[4:6], date[6:8], date[0:4]]
+            if len(date) == 7:
+                # A length of 7 is tricky, grab the first two numbers
+                # if they're 19 or 20, we're looking at a year (e.g 1990, 2010)
+                if int(date[0:2]) == 19 or int(date[0:2]) == 20:
+                    [mn, dy, yr] = [date[4:5], date[5:7], date[0:4]]
+                    # Now we add 0 padding to the month, and proceed as normal
+                    mn = "0" + mn
+                else:
+                    # Otherwise, it's likely a mddyyyy format date
+                    # in this case, just prepend the 0, and move on
+                    date = "0" + date
+                    [mn, dy, yr] = [date[0:2], date[2:4], date[4:8]]
+
             elif len(date) == 6 and date.startswith("7"):
                 # Parse datenum from Matlab
                 converted_date = datetime.date.fromordinal(
@@ -108,9 +126,13 @@ def create_iso_time(csv_row, date_fields, time_field):
         elif len(tmp) < 3:
             min = tmp
             hr = '00'
-        elif len(tmp) >= 3 and len(tmp) < 5:
+        elif len(tmp) >= 3 and len(tmp) <= 5:
+            # Here we add the leading zero, if it's missing from 'hour'
+            if len(tmp) == 4:
+                tmp = "0" + tmp
+
             min = tmp[-2:]
-            hr = tmp[:-2]
+            hr = tmp[:-3]
         else:
             sec = tmp[-2:]
             min = tmp[-4:-2]
@@ -169,6 +191,7 @@ def compile_datetime(
         delimiter=',', fieldnames=out_flds)
     writer.writeheader()
 
+    next(reader)
     for csv_row in reader:
         orow = csv_row
         this_time = create_iso_time(csv_row, date_fields, time_field)

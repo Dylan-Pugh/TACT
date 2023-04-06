@@ -40,7 +40,10 @@ def update_settings(config_type, json_to_apply):
             logger.info(
                 "File found: %s",
                 constants.CONFIG_FILE_PATHS[config_type])
-            data = json.loads(json_to_apply)
+            if isinstance(json_to_apply, dict):
+                data = json_to_apply
+            else:
+                data = json.loads(json_to_apply)
             # write out settings file
             json.dump(data, outfile, indent=6)
         return True
@@ -49,14 +52,14 @@ def update_settings(config_type, json_to_apply):
         logger.error("Config file: %s not found.", config_type)
 
 
-def analyze():
+def analyze(input_path):
     # open settings
     with open(constants.PARSER_CONFIG_FILE_PATH) as json_file:
         config = json.load(json_file)
 
-    logger.debug("Analyzing input file: %s", config.get("inputPath"))
+    logger.debug("Analyzing input file: %s", input_path)
     if analyzer.process_file(
-            config.get("inputPath"),
+            input_path,
             config.get("inputFileEncoding")):
         # return path to settings file
         return constants.PARSER_CONFIG_FILE_PATH

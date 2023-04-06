@@ -148,3 +148,10 @@ tact/config
 
 # Test files
 testing/testData
+
+# Yarn config files
+tact/UI/.yarn/
+tact/UI/yarn.lock
+tact/UI/.yarnclean
+tact/UI/.pnp.js
+tact/UI/.yarnrc.yml

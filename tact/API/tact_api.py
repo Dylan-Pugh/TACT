@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 from flask_restful import Resource, Api, reqparse
 import tact.control.controller as controller
 
@@ -8,23 +8,33 @@ api = Api(app)
 
 class Config(Resource):
     def get(self, config_type):
-        # go out to controller
-        result = controller.get_settings_json(config_type)
+        field = request.args.get("field")
 
-        if result:
-            return result, 200  # return data and 200 OK
+        if field:
+            result = controller.get_settings_json(config_type)
+            if field in result:
+                return result[field], 200
+            else:
+                return {"message": f"{field} not found in {config_type}."}, 404
         else:
-            return {"message": config_type + " not found."}, 404
+            result = controller.get_settings_json(config_type)
+            if result:
+                return result, 200  # return data and 200 OK
+            else:
+                return {"message": f"{config_type} not found."}, 404
 
     def patch(self, config_type):
-        parser = reqparse.RequestParser()  # initialize
-        parser.add_argument('outgoing_config_json', required=True)  # add args
-        args = parser.parse_args()  # parse arguments to dictionary
+        incoming_changes = request.get_json()
 
-        if controller.update_settings(config_type, args.outgoing_config_json):
-            return {"message": "Settings updated."}, 200
+        if incoming_changes:
+            if controller.update_settings(config_type, incoming_changes):
+                return {"message": "Settings updated."}, 200
+            else:
+                return {"message": "Settings update failed."}, 404
         else:
-            return {"message": "Settings update failed."}, 404
+            return {
+                "message": "No incoming changes, please specify config values to be updated."
+            }, 400
 
 
 class Analysis(Resource):
@@ -52,10 +62,12 @@ class Process(Resource):
             return {"message": "File processing failed."}, 404
 
 
-api.add_resource(Config, '/config/<string:config_type>')  # add endpoints
-api.add_resource(Analysis, '/analysis')
-api.add_resource(Preview, '/preview')
-api.add_resource(Process, '/process')
+# add endpoints
+api.add_resource(Config, "/config/<string:config_type>")
+api.add_resource(Analysis, "/analysis")
+api.add_resource(Preview, "/preview")
+api.add_resource(Process, "/process")
 
-if __name__ == '__main__':
-    app.run()  # run our Flask app
+# launch API
+if __name__ == "__main__":
+    app.run()

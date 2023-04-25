@@ -144,7 +144,8 @@ cython_debug/
 .DS_Store
 
 # Config files
-tact/config
+tact/config/*
+tact/config/parserConfig.JSON
 
 # Test files
 testing/testData
@@ -155,4 +156,3 @@ tact/UI/yarn.lock
 tact/UI/.yarnclean
 tact/UI/.pnp.js
 tact/UI/.yarnrc.yml
-tact/config/parserConfig.JSON

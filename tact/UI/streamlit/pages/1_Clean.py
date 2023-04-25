@@ -1,21 +1,19 @@
 import streamlit as st
 import tact.util.constants as constants
-import tact.UI.streamlit.components.dict_table as dict_table
-from settings_sync import write_settings
 
 ######################## Helper Functions ########################
 
 
-def display_analysis(config):
+def display_analysis(config, api_handle):
     with st.form(key="settings_form"):
         # inputs/outputs
         col1, col2 = st.columns([4, 1])
         with col1:
-            st.text_input(
+            inputPath = st.text_input(
                 key="inputPath", label="Input file path", value=config["inputPath"]
             )
         with col2:
-            st.selectbox(
+            inputFileEncoding = st.selectbox(
                 key="inputFileEncoding",
                 label="File Encoding",
                 options=constants.AVAILABLE_ENCODING_MODES,
@@ -23,13 +21,13 @@ def display_analysis(config):
 
         col3, col4 = st.columns([4, 1])
         with col3:
-            st.text_input(
+            outputFilePath = st.text_input(
                 key="outputFilePath",
                 label="Output file path",
                 value=config["outputFilePath"],
             )
         with col4:
-            st.checkbox(
+            concatFiles = st.checkbox(
                 key="concatFiles",
                 label="Concatenate input files",
                 disabled=not config["isDirectory"],
@@ -38,125 +36,123 @@ def display_analysis(config):
         # parsed time settings
         col5, col6, col7 = st.columns([2, 4, 4])
         with col5:
-            st.checkbox(key="fixTimes", label="Fix Times", value=config["fixTimes"])
-            st.checkbox(
+            fixTimes = st.checkbox(
+                key="fixTimes", label="Fix Times", value=config["fixTimes"]
+            )
+            deleteColumns = st.checkbox(
                 key="deleteColumns",
                 label="Delete Selected Columns",
                 value=config["deleteColumns"],
             )
-            st.checkbox(
+            normalizeHeaders = st.checkbox(
                 key="normalizeHeaders",
                 label="Normalize Headers",
                 value=config["normalizeHeaders"],
             )
-            st.checkbox(
+            replaceValues = st.checkbox(
                 key="replaceValues",
                 label="Replace Row Values",
                 value=config["replaceValues"],
             )
-            st.checkbox(
+            dropDuplicates = st.checkbox(
                 key="dropDuplicates",
                 label="Drop Duplicate Rows",
                 value=config["dropDuplicates"],
             )
-            st.checkbox(
+            dropEmpty = st.checkbox(
                 key="dropEmpty", label="Drop Empty Columns", value=config["dropEmpty"]
             )
         with col6:
-            st.text_input(
+            parsedColumnName = st.text_input(
                 key="parsedColumnName",
                 label="Parsed Time Column Name",
                 value=config["parsedColumnName"],
             )
-            st.text_input(
+            dateFields = st.text_input(
                 key="dateFields", label="Date Fields", value=config["dateFields"]
             )
+            st.caption(body="Header Values to Repalace")
+
+            updated_header_values = st.experimental_data_editor(
+                key="headerValuesToReplace",
+                data=config["headerValuesToReplace"],
+                use_container_width=True,
+                num_rows="dynamic",
+            )
         with col7:
-            st.number_input(
+            parsedColumnPosition = st.number_input(
                 key="parsedColumnPosition",
                 label="Parsed Column Position",
                 min_value=0,
                 max_value=len(config["fieldNames"]),
             )
-            st.text_input(
+            timeField = st.text_input(
                 key="timeField", label="Time Fields", value=config["timeField"]
+            )
+
+            st.caption(body="Row Values to Repalace")
+            updated_row_values = st.experimental_data_editor(
+                key="rowValuesToReplace",
+                data=config["rowValuesToReplace"],
+                use_container_width=True,
+                num_rows="dynamic",
             )
 
         # handling for multiple date/time fields
 
         # Autofills date/time fields into columnsToDelete
-        columns_to_delete_args = ""
-        for key, value in config["dateFields"].items():
-            if config["dateFields"].get(key) != "Not Found":
-                if columns_to_delete_args == "":
-                    columns_to_delete_args += config["dateFields"].get(key)
-                else:
-                    columns_to_delete_args += "," + config["dateFields"].get(key)
-        for key, value in config["timeField"].items():
-            if config["timeField"].get(key) != "Not Found":
-                if columns_to_delete_args == "":
-                    columns_to_delete_args += config["timeField"].get(key)
-                else:
-                    columns_to_delete_args += "," + config["timeField"].get(key)
+        # columns_to_delete_args = ""
+        # for key, value in config["dateFields"].items():
+        #     if config["dateFields"].get(key) != "Not Found":
+        #         if columns_to_delete_args == "":
+        #             columns_to_delete_args += config["dateFields"].get(key)
+        #         else:
+        #             columns_to_delete_args += "," + config["dateFields"].get(key)
+        # for key, value in config["timeField"].items():
+        #     if config["timeField"].get(key) != "Not Found":
+        #         if columns_to_delete_args == "":
+        #             columns_to_delete_args += config["timeField"].get(key)
+        #         else:
+        #             columns_to_delete_args += "," + config["timeField"].get(key)
 
         col8, col9 = st.columns([1, 4])
-        # with col6:
-        #     st.checkbox(key='deleteColumns', label='Delete Selected Columns', value=config["deleteColumns"])
-        #     st.checkbox(key='normalizeHeaders', label='Normalize Headers', value=config["normalizeHeaders"])
-        #     st.checkbox(key='replaceValues', label='Replace Row Values', value=config["replaceValues"])
+
+        aggregated_time_fields = list(config.get("dateFields").values()) + list(
+            config.get("timeField").values()
+        )
+
         with col9:
-            st.text_input(
+            columnsToDelete = st.multiselect(
                 key="columnsToDelete",
                 label="Columns To Delete",
-                value=columns_to_delete_args,
+                options=config.get("fieldNames"),
+                default=aggregated_time_fields,
             )
-            # st.text_input(
-            #     key="headerValuesToReplace",
-            #     label="Header Values to Replace",
-            #     value=json.dumps(config["headerValuesToReplace"]),
-            # )
-            # st.text_input(
-            #     key="rowValuesToReplace",
-            #     label="Row Values to Replace",
-            #     value=json.dumps(config["rowValuesToReplace"]),
-            # )
 
-        # Additional fixes
-        # st.checkbox(key='dropDuplicates', label='Drop Duplicate Rows', value=config["dropDuplicates"])
-        # st.checkbox(key='dropEmpty', label='Drop Empty Rows', value=config["dropEmpty"])
+        submit_button = st.form_submit_button(label="Update")
 
-        st.form_submit_button(label="Update", on_click=write_settings)
+    if submit_button:
+        # keys_to_write = config.keys()
+        outgoing_config = {}
 
-    col1, col2 = st.columns([4, 4])
-    with col1:
-        header_vals = dict_table.DictTable(
-            input_dict=config["headerValuesToReplace"],
-            top_level_dict="headerValuesToReplace",
-            label="Header Values to Replace",
-            key_label="Original",
-            value_label="Replacement",
-        )
-        header_vals.render()
+        keys_to_write = config.keys()
 
-    with col2:
-        row_vals = dict_table.DictTable(
-            input_dict=config["rowValuesToReplace"],
-            top_level_dict="rowValuesToReplace",
-            label="Row Values to Replace",
-            key_label="Original",
-            value_label="Replacement",
-        )
-        row_vals.render()
+        for current_key in keys_to_write:
+            if current_key == "headerValuesToReplace":
+                outgoing_config["headerValuesToReplace"] = updated_header_values
+            elif current_key == "rowValuesToReplace":
+                outgoing_config["rowValuesToReplace"] = updated_row_values
+            else:
+                if current_key in st.session_state:
+                    outgoing_config[current_key] = st.session_state[current_key]
 
-    print_state = st.button(label="Print State")
-    if print_state:
-        st.write(st.session_state)
-
-
-def display_preview(preview_JSON):
-    # st.write(preview_JSON)
-    st.table(preview_JSON)
-    return
+        # api call
+        if api_handle.update_config(
+            config_type="parser", config_to_apply=outgoing_config
+        ):
+            st.success(body="Config updated.")
+        else:
+            st.error(body="Failed to update config.")
 
 
 ############################ Main App ############################
@@ -186,19 +182,16 @@ if data_dict:
 
 with st.expander(label="Parser Settings", expanded=True):
     api_handle.analyze()
-    # config = controller.get_settings_json('parser')
-    display_analysis(config)
+    display_analysis(config, api_handle)
 
 with st.expander(label="Preview", expanded=True):
     if st.button(label="Preview Time Changes"):
         # on button press
-        write_settings()
         preview_JSON = api_handle.generate_preview()
-        display_preview(preview_JSON.get("samples"))
+        st.table(preview_JSON.get("samples"))
 
 with st.expander(label="Process", expanded=True):
     if st.button(label="Process File(s)"):
-        write_settings()
         with st.spinner("Processing..."):
             api_handle.process()
 

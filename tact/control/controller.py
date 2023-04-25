@@ -55,13 +55,16 @@ def update_settings(config_type: str, json_to_apply: Dict[str, Any]) -> bool:
         return False
 
 
-def analyze(input_path):
+def analyze():
     # open settings
     with open(constants.PARSER_CONFIG_FILE_PATH) as json_file:
         config = json.load(json_file)
 
-    logger.debug("Analyzing input file: %s", input_path)
-    if analyzer.process_file(input_path, config.get("inputFileEncoding")):
+    input_path = config.get("inputPath")
+    inputFileEncoding = config.get("inputFileEncoding")
+
+    logger.debug(f"Analyzing input file: {input_path}")
+    if analyzer.process_file(input_path=input_path, input_encoding=inputFileEncoding):
         # return path to settings file
         return constants.PARSER_CONFIG_FILE_PATH
     else:

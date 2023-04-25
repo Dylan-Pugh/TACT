@@ -1,10 +1,6 @@
 import streamlit as st
-import pandas as pd
-import xarray as xr
-import json
-import control.controller as controller
-import util.constants as constants
-import front_end.components.dict_table as dict_table
+import tact.util.constants as constants
+import tact.UI.streamlit.components.dict_table as dict_table
 from settings_sync import write_settings
 
 ######################## Helper Functions ########################
@@ -166,6 +162,8 @@ def display_preview(preview_JSON):
 ############################ Main App ############################
 st.set_page_config(layout="wide", page_title="TACT: Clean", page_icon=":broom:")
 
+api_handle = st.session_state.api_handle
+
 st.markdown(
     """
 #
@@ -174,34 +172,35 @@ Operations for Cleaning Input Data
 """
 )
 
-config = controller.get_settings_json("parser")
+config = api_handle.get_config(config_type="parser")
+
 file_path = config["inputPath"]
 
 # df will be null if inputPath is a directory
-df = controller.get_df_from_path("parser")
+data_dict = api_handle.get_data(nrows=10)
 
 # create_report(df)
-if not df.empty:
+if data_dict:
     with st.expander(label="Dataset Preview", expanded=True):
-        st.write(df.head())
+        st.table(data=data_dict)
 
 with st.expander(label="Parser Settings", expanded=True):
-    controller.analyze(file_path)
+    api_handle.analyze()
     # config = controller.get_settings_json('parser')
-    display_analysis(controller.get_settings_json("parser"))
+    display_analysis(config)
 
 with st.expander(label="Preview", expanded=True):
     if st.button(label="Preview Time Changes"):
         # on button press
         write_settings()
-        preview_JSON = controller.generate_preview()
+        preview_JSON = api_handle.generate_preview()
         display_preview(preview_JSON.get("samples"))
 
 with st.expander(label="Process", expanded=True):
     if st.button(label="Process File(s)"):
         write_settings()
         with st.spinner("Processing..."):
-            controller.process()
+            api_handle.process()
 
         st.success(
             "Processing successful. Output file: " + st.session_state.outputFilePath

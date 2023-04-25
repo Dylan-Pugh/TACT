@@ -3,6 +3,7 @@ import errno
 import json
 import os
 import pandas as pd
+from typing import Any, Dict
 
 import tact.processing.analyzer as analyzer
 import tact.processing.datetime_parser as parser
@@ -10,8 +11,7 @@ import tact.processing.quality_checker as quality_checker
 import tact.processing.xml_generator as xml_generator
 import tact.util.constants as constants
 import tact.util.csv_utils as csv_utils
-from tact.control.logging_controller import \
-    LoggingController as loggingController
+from tact.control.logging_controller import LoggingController as loggingController
 
 # interacts with API, calls analyzer, parser, and quality control
 logger = loggingController.get_logger(__name__)
@@ -23,33 +23,36 @@ def get_settings_json(config_type):
     try:
         # open settings
         with open(constants.CONFIG_FILE_PATHS[config_type]) as json_file:
-            logger.info(
-                "File found: %s",
-                constants.CONFIG_FILE_PATHS[config_type])
+            logger.info("File found: %s", constants.CONFIG_FILE_PATHS[config_type])
             return json.load(json_file)
     except (KeyError, FileNotFoundError) as ex:
         logger.error(str(ex))
-        logger.error("Config file: %s not found.", config_type)
+        logger.error(f"{config_type} config file not found.")
 
 
-def update_settings(config_type, json_to_apply):
+def update_settings(config_type: str, json_to_apply: Dict[str, Any]) -> bool:
     logger.info("Updating settings")
     try:
         # open settings
-        with open(constants.CONFIG_FILE_PATHS[config_type], 'w') as outfile:
-            logger.info(
-                "File found: %s",
-                constants.CONFIG_FILE_PATHS[config_type])
-            if isinstance(json_to_apply, dict):
-                data = json_to_apply
-            else:
-                data = json.loads(json_to_apply)
-            # write out settings file
+        with open(constants.CONFIG_FILE_PATHS[config_type], "r") as infile:
+            logger.info(f"File found: {constants.CONFIG_FILE_PATHS[config_type]}")
+
+            data = json.load(infile)
+
+        # update settings with new data
+        for key, value in json_to_apply.items():
+            data[key] = value
+            logger.debug(f"Updated key: {key} with value: {value}.")
+
+        # write out updated settings file
+        with open(constants.CONFIG_FILE_PATHS[config_type], "w") as outfile:
             json.dump(data, outfile, indent=6)
+
         return True
     except (KeyError, FileNotFoundError) as ex:
         logger.error(str(ex))
-        logger.error("Config file: %s not found.", config_type)
+        logger.error(f"Config file: {config_type} not found.")
+        return False
 
 
 def analyze(input_path):
@@ -58,9 +61,7 @@ def analyze(input_path):
         config = json.load(json_file)
 
     logger.debug("Analyzing input file: %s", input_path)
-    if analyzer.process_file(
-            input_path,
-            config.get("inputFileEncoding")):
+    if analyzer.process_file(input_path, config.get("inputFileEncoding")):
         # return path to settings file
         return constants.PARSER_CONFIG_FILE_PATH
     else:
@@ -74,6 +75,37 @@ def generate_preview():
         return analyzer.create_preview(config)
 
 
+def get_data(kwargs: Dict) -> Dict:
+    """Get the currently active dataset as a dictionary"""
+    # parse kwargs
+    format = None
+
+    if "format" in kwargs:
+        format = kwargs.pop("format")
+    if "nrows" in kwargs:
+        try:
+            kwargs["nrows"] = int(kwargs["nrows"])
+        except ValueError as e:
+            logger.error(f"Error parsing nrows arg: {e}")
+
+    # open settings
+    with open(constants.PARSER_CONFIG_FILE_PATH) as json_file:
+        config = json.load(json_file)
+
+        try:
+            df = pd.read_csv(filepath_or_buffer=config.get("inputPath"), **kwargs)
+
+            if format == "json":
+                return df.to_json()
+            else:
+                return df.to_dict()
+
+        except FileNotFoundError as e:
+            logger.error(f"Target dataset does not exist: {e}")
+        except Exception as e:
+            logger.error(f"Dataset could not be converted to a dictionary: {e}")
+
+
 def process():
     logger.info("Processing file(s)")
 
@@ -85,8 +117,7 @@ def process():
         if config["isDirectory"]:
             # gets list of files, ignoring hidden
             raw_files = [
-                f for f in os.listdir(config["inputPath"])
-                if not f.startswith(".")
+                f for f in os.listdir(config["inputPath"]) if not f.startswith(".")
             ]
             # add the full path back in
             to_process = list(
@@ -106,28 +137,31 @@ def process():
             f = open(current_file, encoding=config["inputFileEncoding"])
             if f:
                 output_path = config["outputFilePath"]
-                if os.path.isdir(
-                        config["outputFilePath"]) or config["isDirectory"]:
+                if os.path.isdir(config["outputFilePath"]) or config["isDirectory"]:
                     outfile = "OUT_" + os.path.basename(current_file)
                     output_path = output_path + outfile
 
                 # Correct times
-                if (config["fixTimes"]):
+                if config["fixTimes"]:
                     ret = parser.compile_datetime(
                         f,
                         output_path,
                         config["dateFields"],
                         config["timeField"],
                         config["parsedColumnName"],
-                        config["parsedColumnPosition"]
+                        config["parsedColumnPosition"],
                     )
                     logger.debug(ret)
 
                 # Additional fixes:
-                if config["dropDuplicates"] or config["dropEmpty"] or config[
-                        "normalizeHeaders"] or config["replaceValues"] or config["deleteColumns"]:
-                    logger.info(
-                        "Additional fixes selected, opening data frame")
+                if (
+                    config["dropDuplicates"]
+                    or config["dropEmpty"]
+                    or config["normalizeHeaders"]
+                    or config["replaceValues"]
+                    or config["deleteColumns"]
+                ):
+                    logger.info("Additional fixes selected, opening data frame")
 
                     if os.path.isfile(output_path):
                         input_frame = pd.read_csv(output_path)
@@ -137,7 +171,8 @@ def process():
                     if config["dropDuplicates"]:
                         logger.info("Removing duplicate columns")
                         csv_utils.drop_duplicate_columns(
-                            input_frame, config["inputFileEncoding"])
+                            input_frame, config["inputFileEncoding"]
+                        )
                     if config["dropEmpty"]:
                         logger.info("Removing empty columns")
                         csv_utils.drop_unnamed_columns(input_frame)
@@ -145,32 +180,40 @@ def process():
                         logger.info("Replacing characters in column headers")
                         for current_replacement_pair in config["headerValuesToReplace"]:
                             csv_utils.replace_char_in_headers(
-                                input_frame, current_replacement_pair.get(
-                                    "original"),
-                                current_replacement_pair.get("replacement"))
+                                input_frame,
+                                current_replacement_pair.get("original"),
+                                current_replacement_pair.get("replacement"),
+                            )
                     if config["replaceValues"]:
                         logger.info("Replacing values in rows")
                         for current_replacement_pair in config["rowValuesToReplace"]:
                             csv_utils.replace_in_rows(
-                                input_frame, current_replacement_pair.get(
-                                    "original"),
-                                current_replacement_pair.get("replacement"))
+                                input_frame,
+                                current_replacement_pair.get("original"),
+                                current_replacement_pair.get("replacement"),
+                            )
                     if config["deleteColumns"]:
                         logger.info(
-                            "Deleting specified columns: " +
-                            ", ".join(config["columnsToDelete"]))
-                        if (all(elem in config["fieldNames"]
-                                for elem in config["columnsToDelete"])):
+                            "Deleting specified columns: "
+                            + ", ".join(config["columnsToDelete"])
+                        )
+                        if all(
+                            elem in config["fieldNames"]
+                            for elem in config["columnsToDelete"]
+                        ):
                             csv_utils.delete_columns(
-                                input_frame, config["columnsToDelete"])
+                                input_frame, config["columnsToDelete"]
+                            )
                         else:
                             logger.warning(
-                                "Columns specified for deletion do not exist in file, skipping...")
+                                "Columns specified for deletion do not exist in file, skipping..."
+                            )
 
                     # write out file
                     logger.info("Writing out data frame")
                     csv_utils.write_out_data_frame(
-                        input_frame, output_path, config["inputFileEncoding"])
+                        input_frame, output_path, config["inputFileEncoding"]
+                    )
 
     logger.info("Processing complete")
     return True
@@ -186,8 +229,7 @@ def concat_files(input_path):
         config = json.load(json_file)
 
     logger.info("Concatenating files in directory: %s", input_path)
-    return csv_utils.concat_input_files(
-        input_path, config.get("inputFileEncoding"))
+    return csv_utils.concat_input_files(input_path, config.get("inputFileEncoding"))
 
 
 def init_quality_check():
@@ -206,7 +248,8 @@ def init_quality_check():
         config["outputFilePath"],
         config["parsedColumnName"],
         constants.DEFAULT_PARSED_COLUMN_FORMAT,
-        qa_config)
+        qa_config,
+    )
 
     update_settings(qa_config, constants.QA_CONFIG_PATH)
 
@@ -233,20 +276,19 @@ def generate_xml():
 
 
 def run():
-
     ap = argparse.ArgumentParser()
     ap.add_argument(
-        "csv_file", help="CSV filename. Creates OUT_csv_file in current dir.")
-    ap.add_argument("encoding", nargs='?',
-                    help="encoding with which to open passed file.")
-    ap.add_argument("-v", "--verbose", action="store_true",
-                    help=" verbose output.")
+        "csv_file", help="CSV filename. Creates OUT_csv_file in current dir."
+    )
+    ap.add_argument(
+        "encoding", nargs="?", help="encoding with which to open passed file."
+    )
+    ap.add_argument("-v", "--verbose", action="store_true", help=" verbose output.")
     args = ap.parse_args()
 
     # created combined file if input is a directory
     if os.path.isdir(args.csv_file):
-        infile = csv_utils.concat_input_files(
-            args.csv_file, args.encoding)
+        infile = csv_utils.concat_input_files(args.csv_file, args.encoding)
     elif os.path.isfile(args.csv_file):
         infile = args.csv_file
 

@@ -6,7 +6,7 @@ class ApiHandler:
     def __init__(self, base_url: str):
         self.base_url = base_url
 
-    def get_settings(
+    def get_config(
         self, config_type: str, field: Optional[str] = None
     ) -> Union[Dict, Any]:
         url = f"{self.base_url}/config/{config_type}"
@@ -17,15 +17,32 @@ class ApiHandler:
             if field:
                 return response.text.replace('"', "")
             else:
-                return response.json
+                return response.json()
         else:
             raise Exception(
                 f"Failed to get settings for {config_type}: {response.status_code}"
             )
 
-    def update_settings(self, config_type: str, settings_dict: Dict):
+    def get_data(self, format: Optional[str] = None, nrows: Optional[int] = None):
+        url = f"{self.base_url}/data"
+        params = {}
+
+        if format:
+            params["format"] = format
+        if nrows:
+            params["nrows"] = nrows
+
+        response = requests.get(url, params=params)
+
+        if response.ok:
+            full_response = response.json()
+            return full_response.get("data")
+        else:
+            raise Exception(f"Failed to get data: {response.status_code}")
+
+    def update_config(self, config_type: str, config_to_apply: Dict):
         url = f"{self.base_url}/config/{config_type}"
-        response = requests.patch(url, json={"outgoing_config_json": settings_dict})
+        response = requests.patch(url, json=config_to_apply)
         if response.status_code == 200:
             return True
         else:

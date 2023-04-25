@@ -1,5 +1,5 @@
 from flask import Flask, request
-from flask_restful import Resource, Api, reqparse
+from flask_restful import Resource, Api
 import tact.control.controller as controller
 
 app = Flask(__name__)
@@ -62,11 +62,24 @@ class Process(Resource):
             return {"message": "File processing failed."}, 404
 
 
+class Data(Resource):
+    def get(self):
+        result = controller.get_data(kwargs=request.args.to_dict())
+        if result:
+            return {
+                "message": "Returning dataset as dict.",
+                "data": result,
+            }, 200
+        else:
+            return {"message": "Failed to retrieve dataset."}, 404
+
+
 # add endpoints
 api.add_resource(Config, "/config/<string:config_type>")
 api.add_resource(Analysis, "/analysis")
 api.add_resource(Preview, "/preview")
 api.add_resource(Process, "/process")
+api.add_resource(Data, "/data")
 
 # launch API
 if __name__ == "__main__":

@@ -1,17 +1,26 @@
+import os
 import streamlit as st
+from utils.api_handler import ApiHandler
 
-# Custom imports
-from settings_sync import write_settings
 
 ############################ Main App ############################
 
 st.set_page_config(layout="wide", page_title="TACT: Upload", page_icon=":toolbox:")
 
+# Get our API handler
+if "api_handle" not in st.session_state:
+    st.session_state["api_handle"] = ApiHandler(base_url=os.getenv("API_URL"))
+
+api_handle = st.session_state.api_handle
+
 # Web App Title & Header
 col1, col2 = st.columns([1, 6])
 
 with col1:
-    st.image("./front_end/assets/TACT-logos_white.png", use_column_width="auto")
+    st.image(
+        "tact/UI/streamlit/assets/TACT-logos_white.png",
+        use_column_width="auto",
+    )
 
 with col2:
     st.markdown(
@@ -35,15 +44,17 @@ input_file = st.file_uploader(
         "nc",
     ],
     accept_multiple_files=True,
-    on_change=write_settings(),
 )
 
 # This is a workaround because Streamlit doesn't let you get the file path from an uploaded file :(
 placeholder = st.empty()
 
-input = placeholder.text_input("Input File Path:")
+file_path_from_settings = api_handle.get_config(config_type="parser", field="inputPath")
 
-col1, col2, col3 = st.columns([0.5, 1, 8])
+input = placeholder.text_input(label="Input File Path:", value=file_path_from_settings)
+
+col1, col2, col3 = st.columns([1, 1, 8])
+
 with col1:
     submit_button = st.button("Submit")
 with col2:
@@ -52,24 +63,17 @@ with col3:
     st.empty()
 
 if submit_button:
-    input = placeholder.text_input("Input File Path:", value=input, key=1)
-    st.session_state["inputPath"] = input
-    write_settings()
+    if api_handle.update_config(
+        config_type="parser", config_to_apply={"inputPath": input}
+    ):
+        st.success("Config updated.")
+
 if test_mode_button:
     input = placeholder.text_input(
         "Input File Path:", value="testing/testData/TACT_test.csv", key=2
     )
-    st.session_state["inputPath"] = input
-    write_settings()
-
-# # Add all your applications (pages) here
-# app.add_page("Upload Data", data_upload.app)
-# app.add_page("Clean Dataset", data_cleaner.app)
-# app.add_page("Run IOOS QC", ioos_qc_runner.app)
-# app.add_page("Transform Dataset", data_transform.app)
-
-# #pandas profiling is broken
-# #app.add_page("Dataset Report", data_report.app)
-
-# # The main app
-# app.run()
+    st.write("Path is: ", input)
+    if api_handle.update_config(
+        config_type="parser", config_to_apply={"inputPath": input}
+    ):
+        st.success("Config updated.")

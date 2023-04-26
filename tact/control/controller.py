@@ -3,9 +3,10 @@ import errno
 import json
 import os
 import pandas as pd
-from typing import Any, Dict
+from typing import Any, Dict, Union
 
 import tact.processing.analyzer as analyzer
+import tact.processing.dataset_flipper as flipper
 import tact.processing.datetime_parser as parser
 import tact.processing.quality_checker as quality_checker
 import tact.processing.xml_generator as xml_generator
@@ -78,8 +79,17 @@ def generate_preview():
         return analyzer.create_preview(config)
 
 
-def get_data(kwargs: Dict) -> Dict:
-    """Get the currently active dataset as a dictionary"""
+def get_data(kwargs: Dict = {}) -> Union[pd.DataFrame, str, Dict]:
+    """Loads the currently active file and returns it in the requested format, defaults to Dict.
+
+    Args:
+        kwargs (Dict), including:
+            format (str): Format to return the data in. Options: "dataframe", "json", "dict".
+            nrows (int): Number of rows to read.
+
+    Returns:
+        Union[pd.DataFrame, str, Dict]: Data in the requested format.
+    """
     # parse kwargs
     format = None
 
@@ -94,19 +104,36 @@ def get_data(kwargs: Dict) -> Dict:
     # open settings
     with open(constants.PARSER_CONFIG_FILE_PATH) as json_file:
         config = json.load(json_file)
+        file_path = config.get("inputPath")
 
-        try:
-            df = pd.read_csv(filepath_or_buffer=config.get("inputPath"), **kwargs)
+    if is_directory(file_path):
+        logger.info("Input path is directory: %s", file_path)
+        logger.info("Found files: ")
+        logger.info(os.listdir(file_path))
+        return
+    else:
+        if file_path.lower().endswith(".csv"):
+            try:
+                df = pd.read_csv(filepath_or_buffer=config.get("inputPath"), **kwargs)
 
-            if format == "json":
-                return df.to_json()
-            else:
-                return df.to_dict()
+                if format == "dataframe":
+                    return df
+                if format == "json":
+                    return df.to_json()
+                else:
+                    return df.to_dict()
 
-        except FileNotFoundError as e:
-            logger.error(f"Target dataset does not exist: {e}")
-        except Exception as e:
-            logger.error(f"Dataset could not be converted to a dictionary: {e}")
+            except FileNotFoundError as e:
+                logger.error(f"Target dataset does not exist: {e}")
+            except ValueError as e:
+                logger.error(
+                    f"Dataset could not be converted to requested type: {format}: {e}"
+                )
+
+        elif file_path.lower().endswith(".nc"):
+            # datasource = xr.open_dataset(file_path)
+            # return datasource.to_dataframe()
+            raise NotImplementedError
 
 
 def process():
@@ -291,7 +318,7 @@ def flip_dataset(
     logger.debug(f"Flipper args: target columns: {target_data_columns}")
     logger.debug(f"Flipper args: constants: {constants}")
 
-    df = get_df_from_path("parser")
+    df = get_data(kwargs={"format": "df"})
 
     if constants:
         constants = json.loads(constants)
@@ -325,7 +352,7 @@ def combine_rows(columns_to_match: list, output_path, append_prefix):
     logger.debug(f"Combination args: columns to match: {columns_to_match}")
     logger.debug(f"Combination args: append_prefix: {append_prefix}")
 
-    df = get_df_from_path("parser")
+    df = get_data(kwargs={"format": "df"})
 
     results_df = csv_utils.combine_rows(df, columns_to_match, append_prefix)
 

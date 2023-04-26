@@ -278,6 +278,64 @@ def generate_xml():
     xml_generator.invoke(constants.XML_CONFIG_PATH)
 
 
+def flip_dataset(
+    target_data_columns: list,
+    results_column: str,
+    output_path,
+    drop_units,
+    drop_empty_records,
+    split_fields: bool,
+    constants: dict = {},
+):
+    logger.info("Flipping dataset...")
+    logger.debug(f"Flipper args: target columns: {target_data_columns}")
+    logger.debug(f"Flipper args: constants: {constants}")
+
+    df = get_df_from_path("parser")
+
+    if constants:
+        constants = json.loads(constants)
+
+    flipped_df = flipper.process(
+        target_data_columns,
+        results_column,
+        df,
+        drop_units,
+        drop_empty_records,
+        split_fields,
+        constants,
+    )
+
+    logger.info(f"Flip successful, writing out file: {output_path}")
+
+    config = get_settings_json("parser")
+
+    # sort by time and flipped column name, ascending
+    flipped_df.sort_values(
+        by=[config["dateFields"]["date"], results_column],
+        ascending=True,
+        inplace=True,
+    )
+
+    csv_utils.write_out_data_frame(flipped_df, output_path, config["inputFileEncoding"])
+
+
+def combine_rows(columns_to_match: list, output_path, append_prefix):
+    logger.info("Combining rows...")
+    logger.debug(f"Combination args: columns to match: {columns_to_match}")
+    logger.debug(f"Combination args: append_prefix: {append_prefix}")
+
+    df = get_df_from_path("parser")
+
+    results_df = csv_utils.combine_rows(df, columns_to_match, append_prefix)
+
+    logger.info(f"Row combination successful, writing out file: {output_path}")
+
+    config = get_settings_json("parser")
+
+    csv_utils.write_out_data_frame(results_df, output_path, config["inputFileEncoding"])
+
+
 def run():
     ap = argparse.ArgumentParser()
     ap.add_argument(

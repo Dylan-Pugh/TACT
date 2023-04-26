@@ -93,6 +93,7 @@ def get_data(kwargs: Dict = {}) -> Union[pd.DataFrame, str, Dict]:
     # parse kwargs
     format = None
 
+    # we want to remove format, so the rest of the kwargs can be passed to pd.read_csv
     if "format" in kwargs:
         format = kwargs.pop("format")
     if "nrows" in kwargs:
@@ -107,7 +108,7 @@ def get_data(kwargs: Dict = {}) -> Union[pd.DataFrame, str, Dict]:
         file_path = config.get("inputPath")
 
     if is_directory(file_path):
-        logger.info("Input path is directory: %s", file_path)
+        logger.info(f"Input path is directory: {file_path}")
         logger.info("Found files: ")
         logger.info(os.listdir(file_path))
         return

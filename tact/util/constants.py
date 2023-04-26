@@ -14,6 +14,7 @@ CONFIG_FILE_PATHS = {
     "QA_CONFIG_PATH": "tact/config/qaConfig.JSON",
     "XML_CONFIG_PATH": "tact/config/generateDatasetsXmlConfig.JSON",
     "IOOS_QC_CONFIG_PATH": "tact/config/qc_configs/qc_config.json",
+    "transform": "tact/config/transformConfig.JSON",
 }
 PARSER_CONFIG_FILE_PATH = (
     "/Users/DylanPugh/Development/TACT/tact/config/parserConfig.JSON"

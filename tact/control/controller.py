@@ -19,7 +19,7 @@ logger = loggingController.get_logger(__name__)
 
 
 def get_settings_json(config_type):
-    logger.info("Fetching target config: %s", config_type)
+    logger.info(f"Fetching target config: {config_type}")
 
     try:
         # open settings
@@ -306,62 +306,86 @@ def generate_xml():
     xml_generator.invoke(constants.XML_CONFIG_PATH)
 
 
-def flip_dataset(
-    target_data_columns: list,
-    results_column: str,
-    output_path,
-    drop_units,
-    drop_empty_records,
-    split_fields: bool,
-    constants: dict = {},
-):
+def flip_dataset():
+    transform_config = get_settings_json("transform")
+
     logger.info("Flipping dataset...")
-    logger.debug(f"Flipper args: target columns: {target_data_columns}")
-    logger.debug(f"Flipper args: constants: {constants}")
+    logger.debug(
+        "Flipper args: target columns: {}".format(
+            transform_config.get("target_data_columns")
+        )
+    )
+    logger.debug(
+        "Flipper args: constants: {}".format(transform_config.get("constants"))
+    )
+    logger.debug(
+        "Flipper args: transform_output_path: {}".format(
+            transform_config.get("transform_output_path")
+        )
+    )
 
     df = get_data(kwargs={"format": "df"})
 
-    if constants:
-        constants = json.loads(constants)
+    # if constants:
+    #     constants = json.loads(constants)
 
     flipped_df = flipper.process(
-        target_data_columns,
-        results_column,
+        transform_config.get("target_data_columns"),
+        transform_config.get("results_column"),
         df,
-        drop_units,
-        drop_empty_records,
-        split_fields,
-        constants,
+        transform_config.get("drop_units"),
+        transform_config.get("drop_empty_records"),
+        transform_config.get("split_fields"),
+        transform_config.get("constants"),
     )
 
-    logger.info(f"Flip successful, writing out file: {output_path}")
-
-    config = get_settings_json("parser")
+    parser_config = get_settings_json("parser")
 
     # sort by time and flipped column name, ascending
     flipped_df.sort_values(
-        by=[config["dateFields"]["date"], results_column],
+        by=[
+            parser_config["dateFields"]["date"],
+            transform_config.get("results_column"),
+        ],
         ascending=True,
         inplace=True,
     )
 
-    csv_utils.write_out_data_frame(flipped_df, output_path, config["inputFileEncoding"])
+    csv_utils.write_out_data_frame(
+        flipped_df,
+        transform_config.get("transform_output_path"),
+        parser_config["inputFileEncoding"],
+    )
+
+    return True
 
 
-def combine_rows(columns_to_match: list, output_path, append_prefix):
+def combine_rows():
+    transform_config = get_settings_json("transform")
+
     logger.info("Combining rows...")
-    logger.debug(f"Combination args: columns to match: {columns_to_match}")
-    logger.debug(f"Combination args: append_prefix: {append_prefix}")
 
     df = get_data(kwargs={"format": "df"})
 
-    results_df = csv_utils.combine_rows(df, columns_to_match, append_prefix)
+    results_df = csv_utils.combine_rows(
+        df,
+        transform_config.get("columns_to_match"),
+        transform_config.get("append_prefix"),
+    )
 
-    logger.info(f"Row combination successful, writing out file: {output_path}")
+    logger.info(
+        "Row combination successful, writing out file: {}".format(
+            transform_config.get("combine_output_path")
+        )
+    )
 
-    config = get_settings_json("parser")
+    parser_config = get_settings_json("parser")
 
-    csv_utils.write_out_data_frame(results_df, output_path, config["inputFileEncoding"])
+    csv_utils.write_out_data_frame(
+        results_df,
+        transform_config.get("combine_output_path"),
+        parser_config["inputFileEncoding"],
+    )
 
 
 def run():

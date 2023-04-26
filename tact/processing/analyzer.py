@@ -5,40 +5,39 @@ import re
 
 import tact.processing.datetime_parser as datetime_parser
 import tact.util.constants as constants
-from tact.control.logging_controller import \
-    LoggingController as loggingController
+from tact.control.logging_controller import LoggingController as loggingController
 
 logger = loggingController.get_logger(__name__)
 
 
 def compile_settings_file(input_string):
     settings_JSON = {}
-    settings_JSON['inputPath'] = input_string
-    settings_JSON['pathForPreview'] = input_string
-    settings_JSON['isDirectory'] = False
-    settings_JSON['concatFiles'] = False
-    settings_JSON['inputFileEncoding'] = constants.DEFAULT_ENCODING
-    settings_JSON['parsedColumnName'] = constants.DEFAULT_PARSED_COLUMN_NAME
-    settings_JSON['parsedColumnPosition'] = constants.DEFAULT_PARSED_COLUMN_POSITION
-    settings_JSON['dropDuplicates'] = True
-    settings_JSON['fixTimes'] = True
-    settings_JSON['dropEmpty'] = True
-    settings_JSON['normalizeHeaders'] = True
-    settings_JSON['replaceValues'] = True
-    settings_JSON['deleteColumns'] = True
-    settings_JSON['headerValuesToReplace'] = constants.DEFAULT_HEADER_REPLACEMENTS
-    settings_JSON['rowValuesToReplace'] = constants.DEFAULT_ROW_VALUE_REPLACEMENTS
-    settings_JSON['columnsToDelete'] = ["VALUES", "TO", "DELETE"]
+    settings_JSON["inputPath"] = input_string
+    settings_JSON["pathForPreview"] = input_string
+    settings_JSON["isDirectory"] = False
+    settings_JSON["concatFiles"] = False
+    settings_JSON["inputFileEncoding"] = constants.DEFAULT_ENCODING
+    settings_JSON["parsedColumnName"] = constants.DEFAULT_PARSED_COLUMN_NAME
+    settings_JSON["parsedColumnPosition"] = constants.DEFAULT_PARSED_COLUMN_POSITION
+    settings_JSON["dropDuplicates"] = True
+    settings_JSON["fixTimes"] = True
+    settings_JSON["dropEmpty"] = True
+    settings_JSON["normalizeHeaders"] = True
+    settings_JSON["replaceValues"] = True
+    settings_JSON["deleteColumns"] = True
+    settings_JSON["headerValuesToReplace"] = constants.DEFAULT_HEADER_REPLACEMENTS
+    settings_JSON["rowValuesToReplace"] = constants.DEFAULT_ROW_VALUE_REPLACEMENTS
+    settings_JSON["columnsToDelete"] = ["VALUES", "TO", "DELETE"]
 
     # For testing
-    settings_JSON['dropDuplicates'] = True
+    settings_JSON["dropDuplicates"] = True
 
-    outfile = '/OUT_' + os.path.basename(input_string)
-    settings_JSON['outputFilePath'] = os.path.dirname(input_string) + outfile
+    outfile = "/OUT_" + os.path.basename(input_string)
+    settings_JSON["outputFilePath"] = os.path.dirname(input_string) + outfile
 
     if os.path.isdir(input_string):
-        settings_JSON['isDirectory'] = True
-        settings_JSON['outputFilePath'] = input_string + '/combined.csv'
+        settings_JSON["isDirectory"] = True
+        settings_JSON["outputFilePath"] = input_string + "/combined.csv"
 
     return settings_JSON
 
@@ -46,15 +45,15 @@ def compile_settings_file(input_string):
 def find_date_components(field_names, settings_file):
     mn = dy = yr = "Not Found"
 
-    date_search_pattern = re.compile('^date.*', re.IGNORECASE)
-    month_search_pattern = re.compile('month|mnth(?=s| |$)', re.IGNORECASE)
-    day_search_pattern = re.compile('day(?=s| |$)', re.IGNORECASE)
-    year_search_pattern = re.compile('year(?=s| |$)', re.IGNORECASE)
+    date_search_pattern = re.compile("^date.*", re.IGNORECASE)
+    month_search_pattern = re.compile("month|mnth(?=s| |$)", re.IGNORECASE)
+    day_search_pattern = re.compile("day(?=s| |$)", re.IGNORECASE)
+    year_search_pattern = re.compile("year(?=s| |$)", re.IGNORECASE)
 
     for current in field_names:
         date_match = date_search_pattern.match(current)
         if date_match:
-            settings_file['dateFields'] = {"date": date_match.group(0)}
+            settings_file["dateFields"] = {"date": date_match.group(0)}
             return settings_file
 
         month_match = month_search_pattern.match(current)
@@ -72,22 +71,22 @@ def find_date_components(field_names, settings_file):
             yr = year_match.group(0)
             continue
 
-    settings_file['dateFields'] = {"year": yr, "month": mn, "day": dy}
+    settings_file["dateFields"] = {"year": yr, "month": mn, "day": dy}
     return settings_file
 
 
 def find_time_field(field_names, settings_file):
     hr = min = sec = "Not Found"
 
-    time_search_pattern = re.compile('^time.*', re.IGNORECASE)
-    hour_search_pattern = re.compile('^h(?=our|r)', re.IGNORECASE)
-    minute_search_pattern = re.compile('^min(?=ute|s|$)', re.IGNORECASE)
-    second_search_pattern = re.compile('sec(?=ond|s|$)', re.IGNORECASE)
+    time_search_pattern = re.compile("^time.*", re.IGNORECASE)
+    hour_search_pattern = re.compile("^h(?=our|r)", re.IGNORECASE)
+    minute_search_pattern = re.compile("^min(?=ute|s|$)", re.IGNORECASE)
+    second_search_pattern = re.compile("sec(?=ond|s|$)", re.IGNORECASE)
 
     for current in field_names:
         time_match = time_search_pattern.match(current)
         if time_match:
-            settings_file['timeField'] = {"time": time_match.group(0)}
+            settings_file["timeField"] = {"time": time_match.group(0)}
             return settings_file
 
         hour_match = hour_search_pattern.match(current)
@@ -105,41 +104,41 @@ def find_time_field(field_names, settings_file):
             sec = second_match.string
             continue
 
-    settings_file['timeField'] = {"hour": hr, "minute": min, "second": sec}
+    settings_file["timeField"] = {"hour": hr, "minute": min, "second": sec}
     return settings_file
 
 
-def process_file(input_string, input_encoding):
+def process_file(input_path, input_encoding):
     # compile basic settings
     logger.info("Compiling settings")
-    settings_JSON = compile_settings_file(input_string)
+    settings_JSON = compile_settings_file(input_path)
 
     # if isDirectory, get path to first file in dir, and proceed
-    if settings_JSON['isDirectory']:
-        #remove trailing slash
-        if settings_JSON['inputPath'].endswith('/'):
-            settings_JSON['inputPath'] = settings_JSON['inputPath'].removesuffix('/')
+    if settings_JSON["isDirectory"]:
+        # remove trailing slash
+        if settings_JSON["inputPath"].endswith("/"):
+            settings_JSON["inputPath"] = settings_JSON["inputPath"].removesuffix("/")
 
         # gets list of files, ignoring hidden
         raw_files = [
-            f for f in os.listdir(settings_JSON["inputPath"])
-            if not f.startswith(".")
+            f for f in os.listdir(settings_JSON["inputPath"]) if not f.startswith(".")
         ]
         # add the full path back in
         file_paths = list(
             map(lambda current: settings_JSON["inputPath"] + "/" + current, raw_files)
         )
 
-        input_string = file_paths[0]
+        input_path = file_paths[0]
 
-        settings_JSON['pathForPreview'] = input_string
+        settings_JSON["pathForPreview"] = input_path
 
         logger.info(
             "Input path is a directory, retrieving first file for preview: %s",
-            input_string)
+            input_path,
+        )
 
-    f = open(input_string, encoding=input_encoding)
-    logger.debug("Opened file: %s", input_string)
+    f = open(input_path, encoding=input_encoding)
+    logger.debug("Opened file: %s", input_path)
 
     # # optionally skipping header rows
     # if settings_JSON['headerRow']:
@@ -149,18 +148,16 @@ def process_file(input_string, input_encoding):
     reader = csv.DictReader(f)
     # get field names and update
     field_names = reader.fieldnames
-    settings_JSON['fieldNames'] = field_names
+    settings_JSON["fieldNames"] = field_names
 
     # get date & time fields
     find_date_components(field_names, settings_JSON)
     find_time_field(field_names, settings_JSON)
 
     # write out settings file
-    with open(constants.CONFIG_FILE_PATHS['parser'], 'w') as outfile:
+    with open(constants.CONFIG_FILE_PATHS["parser"], "w") as outfile:
         json.dump(settings_JSON, outfile)
-        logger.info(
-            "Settings written to: %s",
-            constants.CONFIG_FILE_PATHS['parser'])
+        logger.info("Settings written to: %s", constants.CONFIG_FILE_PATHS["parser"])
 
     return True
 
@@ -175,14 +172,14 @@ def create_preview(config):
     logger.info("Generating preview")
 
     # parse preview file file
-    with open(config['pathForPreview'], encoding=config['inputFileEncoding']) as f:
+    with open(config["pathForPreview"], encoding=config["inputFileEncoding"]) as f:
         reader = csv.DictReader(f)
 
         # skipping n rows to get to data
         next(reader)
 
         sample_JSON = {}
-        sample_JSON['samples'] = []
+        sample_JSON["samples"] = []
         known_date_lengths = []
         known_time_lengths = []
         # TODO: add handling for multiple date fields
@@ -193,36 +190,37 @@ def create_preview(config):
             date_length = 0
             time_length = 0
 
-            if config['dateFields'] != "Not Found":
-                for field in config['dateFields']:
-                    if config['dateFields'][field] != "Not Found":
-                        date_length += len(csv_row[config['dateFields'][field]])
+            if config["dateFields"] != "Not Found":
+                for field in config["dateFields"]:
+                    if config["dateFields"][field] != "Not Found":
+                        date_length += len(csv_row[config["dateFields"][field]])
 
-            if config['timeField'] != "Not Found":
-                for field in config['timeField']:
-                    if config['timeField'][field] != "Not Found":
-                        time_length += len(
-                            csv_row[config['timeField'][field]])
+            if config["timeField"] != "Not Found":
+                for field in config["timeField"]:
+                    if config["timeField"][field] != "Not Found":
+                        time_length += len(csv_row[config["timeField"][field]])
 
-            if date_length not in known_date_lengths or time_length not in known_time_lengths:
+            if (
+                date_length not in known_date_lengths
+                or time_length not in known_time_lengths
+            ):
                 current = {}
                 # construct new JSON date object by looping through the fields in
                 # config['dateFields']
-                for key, value in config['dateFields'].items():
+                for key, value in config["dateFields"].items():
                     if value != "Not Found":
                         field_name = "Original_" + value
-                        current[field_name] = csv_row[config['dateFields'].get(
-                            key)]
+                        current[field_name] = csv_row[config["dateFields"].get(key)]
 
-                for key, value in config['timeField'].items():
+                for key, value in config["timeField"].items():
                     if value != "Not Found":
                         field_name = "Original_" + value
-                        current[field_name] = csv_row[config['timeField'].get(
-                            key)]
+                        current[field_name] = csv_row[config["timeField"].get(key)]
 
-                current['Transformation'] = datetime_parser.create_iso_time(
-                    csv_row, config['dateFields'], config['timeField'])
-                sample_JSON['samples'].append(current)
+                current["Transformation"] = datetime_parser.create_iso_time(
+                    csv_row, config["dateFields"], config["timeField"]
+                )
+                sample_JSON["samples"].append(current)
 
                 # add relevant field length to known values
                 if date_length not in known_date_lengths:

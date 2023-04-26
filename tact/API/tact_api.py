@@ -81,7 +81,14 @@ class Data(Resource):
 
 class Transform(Resource):
     def post(self):
-        args = request.args
+        parser = reqparse.RequestParser()
+        parser.add_argument(
+            "operation",
+            type=str,
+            required=True,
+            help="Type of tansformation ro perform.",
+        )
+        args = parser.parse_args()
         operation = args.get("operation")
 
         if operation == "enumerate_columns":

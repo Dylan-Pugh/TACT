@@ -73,3 +73,13 @@ class ApiHandler:
             return True
         else:
             raise Exception(f"Failed to process: {response.status_code}")
+
+    def transform(self, operation: str):
+        params = {"operation": operation}
+
+        url = f"{self.base_url}/transform"
+        response = requests.post(url, params=params)
+        if response.ok:
+            return True
+        else:
+            raise Exception(f"Failed to transform dataset: {response.status_code}")

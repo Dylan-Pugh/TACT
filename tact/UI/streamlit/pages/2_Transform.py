@@ -1,9 +1,4 @@
-import json
 import streamlit as st
-import pandas as pd
-import xarray as xr
-import control.controller as controller
-import front_end.components.dict_table as dt
 
 # placeholder for transform functionality:
 # 1. Dataset flipper
@@ -12,7 +7,10 @@ import front_end.components.dict_table as dt
 ############################ Main App ############################
 st.set_page_config(layout="wide", page_title="TACT: Transform", page_icon=":dolphin:")
 
-config = controller.get_settings_json("parser")
+api_handle = st.session_state.api_handle
+
+parser_config = api_handle.get_config(config_type="parser")
+transform_config = api_handle.get_config(config_type="transform")
 
 st.markdown(
     """
@@ -22,10 +20,12 @@ Operations for Transforming a Dataset
 """
 )
 
-df = controller.get_df_from_path(config_type="parser")
+data_dict = api_handle.get_data(nrows=10)
 
-with st.expander(label="Current format", expanded=True):
-    st.write(df.head())
+# Dataset preview
+if data_dict:
+    with st.expander(label="Dataset Preview", expanded=True):
+        st.table(data=data_dict)
 
 st.markdown(
     """
@@ -36,74 +36,64 @@ Extract data in the target columns into discrete records (rows). Data in other c
 """
 )
 # Allow users to select input columns & constants
-target_columns = st.multiselect(
-    label="Select target columns:", options=df.columns, default=df.columns.to_list()
+target_data_columns = st.multiselect(
+    label="Select target columns:",
+    options=parser_config.get("fieldNames"),
+    default=parser_config.get("fieldNames"),
 )
 
-col1, col2 = st.columns([1, 6])
 
-with col1:
-    append_constants = st.checkbox(label="Append Constants")
-with col2:
-    constants = st.text_input(
-        label="Define constants as key/value pairs:",
-        value={"key1": "value1", "key2": "value2", "key3": 0},
-    )
+constants = st.experimental_data_editor(
+    data=transform_config.get("constants"),
+    use_container_width=True,
+    num_rows="dynamic",
+)
 
 
-drop_units = st.checkbox(label="Drop first row (units)")
+drop_units = st.checkbox(
+    label="Drop first row (units)", value=transform_config.get("drop_units")
+)
 drop_empty_records = st.checkbox(
-    label="Drop records with a value of 0 or less in target columns"
+    label="Drop records with a value of 0 or less in target columns",
+    value=transform_config.get("drop_empty_records"),
 )
-split_fields = st.checkbox(label="Split input column into multiple columns")
+split_fields = st.checkbox(
+    label="Split input column into multiple columns",
+    value=transform_config.get("split_fields"),
+)
 
-results_column = st.text_input(label="Column name for results:", value="scientificName")
+results_column = st.text_input(
+    label="Column name for results:", value=transform_config.get("results_column")
+)
 
-output_path = st.text_input(label="Output path:", value=config["outputFilePath"])
-
-# testing
-# target_columns = ['7/23/2020_cells/Liter',
-#                         '8/12/2020_cells/Liter',
-#                         '8/19/2020_cells/Liter',
-#                         '9/10/2020_cells/Liter']
-
-# target_columns = ['7/23/2020_cells/Liter',
-#                     '7/23/2020_ng C/ Liter',
-#                     '8/12/2020_cells/Liter',
-#                     '8/12/2020_ng C/ Liter',
-#                     '8/19/2020_cells/Liter',
-#                     '8/19/2020_ng C/ Liter',
-#                     '9/10/2020_cells/Liter',
-#                     '9/10/2020_ng C/ Liter']
-
-# constants = {"latitude": 42.8646, "longitude": -69.8632, "Station": "WBTS", "depth": 20}
-
-# constants_table = dt.DictTable(json.loads(constants), "Constants:")
-
-# constants_table.render()
+transform_output_path = st.text_input(
+    label="Output path:", value=transform_config.get("transform_output_path")
+)
 
 if st.button(label="Flip It!"):
     with st.spinner("Processing..."):
-        if append_constants:
-            controller.flip_dataset(
-                target_columns,
-                results_column,
-                output_path,
-                drop_units,
-                drop_empty_records,
-                split_fields,
-                constants,
-            )
+        # Write settings
+        outgoing_config = {
+            "target_data_columns": target_data_columns,
+            "results_column": results_column,
+            "transform_output_path": transform_output_path,
+            "drop_units": drop_units,
+            "drop_empty_records": drop_empty_records,
+            "split_fields": split_fields,
+            "constants": constants,
+        }
+
+        if api_handle.update_config(
+            config_type="transform", config_to_apply=outgoing_config
+        ):
+            st.success(body="Config updated.")
         else:
-            controller.flip_dataset(
-                target_columns,
-                results_column,
-                output_path,
-                drop_units,
-                drop_empty_records,
-                split_fields,
-            )
-    st.success("Success - dataset flipped")
+            st.error(body="Failed to update config.")
+
+        if api_handle.transform(operation="enumerate_columns"):
+            st.success("Success - dataset flipped")
+        else:
+            st.error("Failed to flip dataset.")
 
 st.markdown(
     """
@@ -115,7 +105,9 @@ st.markdown(
 )
 
 # Allow users to select match columns
-match_columns = st.multiselect(label="Select columns for match:", options=df.columns)
+match_columns = st.multiselect(
+    label="Select columns for match:", options=parser_config.get("fieldNames")
+)
 append_prefix = st.text_input(label="Prefix for added columns:")
 combine_output_path = st.text_input(
     key="row_combine_output", label="Output path:", placeholder="path/to/output.csv"
@@ -123,8 +115,24 @@ combine_output_path = st.text_input(
 
 if st.button(label="Combine Rows!"):
     with st.spinner("Processing..."):
-        controller.combine_rows(match_columns, combine_output_path, append_prefix)
-    st.success("Success - rows combined")
+        # Write settings
+        outgoing_config = {
+            "match_columns": match_columns,
+            "append_prefix": append_prefix,
+            "combine_output_path": combine_output_path,
+        }
+
+        if api_handle.update_config(
+            config_type="transform", config_to_apply=outgoing_config
+        ):
+            st.success(body="Config updated.")
+        else:
+            st.error(body="Failed to update config.")
+
+        if api_handle.transform(operation="combine_rows"):
+            st.success("Success - rows combined.")
+        else:
+            st.error("Failed to combine rows.")
 
 st.markdown(
     """

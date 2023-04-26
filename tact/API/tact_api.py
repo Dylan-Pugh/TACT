@@ -1,5 +1,5 @@
 from flask import Flask, request
-from flask_restful import Resource, Api
+from flask_restful import Resource, Api, reqparse
 import tact.control.controller as controller
 
 app = Flask(__name__)
@@ -8,7 +8,12 @@ api = Api(app)
 
 class Config(Resource):
     def get(self, config_type):
-        field = request.args.get("field")
+        parser = reqparse.RequestParser()
+        parser.add_argument(
+            "field", type=str, required=False, help="Specific config value to retrieve."
+        )
+        args = parser.parse_args()
+        field = args.get("field")
 
         if field:
             result = controller.get_settings_json(config_type)
@@ -74,12 +79,34 @@ class Data(Resource):
             return {"message": "Failed to retrieve dataset."}, 404
 
 
+class Transform(Resource):
+    def post(self):
+        args = request.args
+        operation = args.get("operation")
+
+        if operation == "enumerate_columns":
+            if controller.flip_dataset():
+                return {"message": "Dataset flipped successfully"}, 200
+            else:
+                return {"message": "Failed to flip dataset."}, 404
+        elif operation == "combine_rows":
+            if controller.combine_rows():
+                return {"message": "Rows combined successfully"}, 200
+            else:
+                return {"message": "Failed to combine rows."}, 404
+        else:
+            return {
+                "message": "Invalid operation, please select enumerate_columns, or combine_rows."
+            }, 400
+
+
 # add endpoints
 api.add_resource(Config, "/config/<string:config_type>")
 api.add_resource(Analysis, "/analysis")
 api.add_resource(Preview, "/preview")
 api.add_resource(Process, "/process")
 api.add_resource(Data, "/data")
+api.add_resource(Transform, "/transform")
 
 # launch API
 if __name__ == "__main__":

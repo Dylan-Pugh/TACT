@@ -98,23 +98,6 @@ def display_analysis(config, api_handle):
                 num_rows="dynamic",
             )
 
-        # handling for multiple date/time fields
-
-        # Autofills date/time fields into columnsToDelete
-        # columns_to_delete_args = ""
-        # for key, value in config["dateFields"].items():
-        #     if config["dateFields"].get(key) != "Not Found":
-        #         if columns_to_delete_args == "":
-        #             columns_to_delete_args += config["dateFields"].get(key)
-        #         else:
-        #             columns_to_delete_args += "," + config["dateFields"].get(key)
-        # for key, value in config["timeField"].items():
-        #     if config["timeField"].get(key) != "Not Found":
-        #         if columns_to_delete_args == "":
-        #             columns_to_delete_args += config["timeField"].get(key)
-        #         else:
-        #             columns_to_delete_args += "," + config["timeField"].get(key)
-
         col8, col9 = st.columns([1, 4])
 
         aggregated_time_fields = list(config.get("dateFields").values()) + list(

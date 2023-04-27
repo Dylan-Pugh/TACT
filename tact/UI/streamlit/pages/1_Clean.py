@@ -68,10 +68,14 @@ def display_analysis(config, api_handle):
                 label="Parsed Time Column Name",
                 value=config["parsedColumnName"],
             )
-            dateFields = st.text_input(
-                key="dateFields", label="Date Fields", value=config["dateFields"]
+            st.caption(body="Date Fields")
+            dateFields = st.experimental_data_editor(
+                key="dateFields",
+                data=config["dateFields"],
+                use_container_width=True,
+                num_rows="dynamic",
             )
-            st.caption(body="Header Values to Repalace")
+            st.caption(body="Header Values to Replace")
 
             updated_header_values = st.experimental_data_editor(
                 key="headerValuesToReplace",
@@ -86,8 +90,12 @@ def display_analysis(config, api_handle):
                 min_value=0,
                 max_value=len(config["fieldNames"]),
             )
-            timeField = st.text_input(
-                key="timeField", label="Time Fields", value=config["timeField"]
+            st.caption(body="Time Fields")
+            timeField = st.experimental_data_editor(
+                key="timeField",
+                data=config["timeField"],
+                use_container_width=True,
+                num_rows="dynamic",
             )
 
             st.caption(body="Row Values to Repalace")
@@ -125,6 +133,10 @@ def display_analysis(config, api_handle):
                 outgoing_config["headerValuesToReplace"] = updated_header_values
             elif current_key == "rowValuesToReplace":
                 outgoing_config["rowValuesToReplace"] = updated_row_values
+            elif current_key == "dateFields":
+                outgoing_config["dateFields"] = dateFields
+            elif current_key == "timeField":
+                outgoing_config["timeField"] = timeField
             else:
                 if current_key in st.session_state:
                     outgoing_config[current_key] = st.session_state[current_key]

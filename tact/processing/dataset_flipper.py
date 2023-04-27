@@ -1,6 +1,6 @@
 import uuid
 import pandas as pd
-from control.logging_controller import LoggingController as loggingController
+from tact.control.logging_controller import LoggingController as loggingController
 
 logger = loggingController.get_logger(__name__)
 

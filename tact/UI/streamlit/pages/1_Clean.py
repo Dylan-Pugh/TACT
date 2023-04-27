@@ -165,8 +165,6 @@ Operations for Cleaning Input Data
 
 config = api_handle.get_config(config_type="parser")
 
-file_path = config["inputPath"]
-
 # df will be null if inputPath is a directory
 data_dict = api_handle.get_data(nrows=10)
 

@@ -110,27 +110,30 @@ def find_time_field(field_names, settings_file):
 
 def process_file(input_path, input_encoding):
     # compile basic settings
-    logger.info("Compiling settings")
-    settings_JSON = compile_settings_file(input_path)
+    # logger.info("Compiling settings")
+    # settings_JSON = compile_settings_file(input_path)
+
+    with open(constants.PARSER_CONFIG_FILE_PATH) as json_file:
+        config = json.load(json_file)
 
     # if isDirectory, get path to first file in dir, and proceed
-    if settings_JSON["isDirectory"]:
+    if config["isDirectory"]:
         # remove trailing slash
-        if settings_JSON["inputPath"].endswith("/"):
-            settings_JSON["inputPath"] = settings_JSON["inputPath"].removesuffix("/")
+        if config["inputPath"].endswith("/"):
+            config["inputPath"] = config["inputPath"].removesuffix("/")
 
         # gets list of files, ignoring hidden
         raw_files = [
-            f for f in os.listdir(settings_JSON["inputPath"]) if not f.startswith(".")
+            f for f in os.listdir(config["inputPath"]) if not f.startswith(".")
         ]
         # add the full path back in
         file_paths = list(
-            map(lambda current: settings_JSON["inputPath"] + "/" + current, raw_files)
+            map(lambda current: config["inputPath"] + "/" + current, raw_files)
         )
 
         input_path = file_paths[0]
 
-        settings_JSON["pathForPreview"] = input_path
+        config["pathForPreview"] = input_path
 
         logger.info(
             "Input path is a directory, retrieving first file for preview: %s",
@@ -148,15 +151,15 @@ def process_file(input_path, input_encoding):
     reader = csv.DictReader(f)
     # get field names and update
     field_names = reader.fieldnames
-    settings_JSON["fieldNames"] = field_names
+    config["fieldNames"] = field_names
 
     # get date & time fields
-    find_date_components(field_names, settings_JSON)
-    find_time_field(field_names, settings_JSON)
+    find_date_components(field_names, config)
+    find_time_field(field_names, config)
 
     # write out settings file
     with open(constants.CONFIG_FILE_PATHS["parser"], "w") as outfile:
-        json.dump(settings_JSON, outfile)
+        json.dump(config, outfile)
         logger.info("Settings written to: %s", constants.CONFIG_FILE_PATHS["parser"])
 
     return True

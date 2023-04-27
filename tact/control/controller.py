@@ -324,7 +324,7 @@ def flip_dataset():
         )
     )
 
-    df = get_data(kwargs={"format": "df"})
+    df = get_data(kwargs={"format": "dataframe"})
 
     # if constants:
     #     constants = json.loads(constants)
@@ -341,10 +341,10 @@ def flip_dataset():
 
     parser_config = get_settings_json("parser")
 
-    # sort by time and flipped column name, ascending
+    # sort by parsed time and flipped column name, ascending
     flipped_df.sort_values(
         by=[
-            parser_config["dateFields"]["date"],
+            parser_config.get("parsedColumnName"),
             transform_config.get("results_column"),
         ],
         ascending=True,

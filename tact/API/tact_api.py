@@ -80,7 +80,7 @@ def data():
 
 @app.route("/transform", methods=["POST"])
 def transform():
-    operation = request.json.get("operation")
+    operation = request.args.get("operation")
 
     if operation == "enumerate_columns":
         if controller.flip_dataset():

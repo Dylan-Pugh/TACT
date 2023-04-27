@@ -20,6 +20,19 @@ Operations for Transforming a Dataset
 """
 )
 
+
+input = st.text_input(
+    label="Input File Path:", value=parser_config.get("outputFilePath")
+)
+
+submit_button = st.button("Submit")
+
+if submit_button:
+    if api_handle.update_config(
+        config_type="parser", config_to_apply={"inputPath": input}
+    ):
+        st.success("Config updated.")
+
 data_dict = api_handle.get_data(nrows=10)
 
 # Dataset preview
@@ -38,16 +51,16 @@ Extract data in the target columns into discrete records (rows). Data in other c
 # Allow users to select input columns & constants
 target_data_columns = st.multiselect(
     label="Select target columns:",
-    options=parser_config.get("fieldNames"),
-    default=parser_config.get("fieldNames"),
+    options=list(data_dict.keys()),
+    default=list(data_dict.keys()),
 )
 
-
-constants = st.experimental_data_editor(
-    data=transform_config.get("constants"),
-    use_container_width=True,
-    num_rows="dynamic",
-)
+with st.expander(label="Define constants (optional)", expanded=True):
+    constants = st.experimental_data_editor(
+        data=transform_config.get("constants"),
+        use_container_width=True,
+        num_rows="dynamic",
+    )
 
 
 drop_units = st.checkbox(

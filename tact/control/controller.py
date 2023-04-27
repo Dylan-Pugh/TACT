@@ -207,22 +207,6 @@ def process():
                     if config["dropEmpty"]:
                         logger.info("Removing empty columns")
                         csv_utils.drop_unnamed_columns(input_frame)
-                    if config["normalizeHeaders"]:
-                        logger.info("Replacing characters in column headers")
-                        for current_replacement_pair in config["headerValuesToReplace"]:
-                            csv_utils.replace_char_in_headers(
-                                input_frame,
-                                current_replacement_pair.get("original"),
-                                current_replacement_pair.get("replacement"),
-                            )
-                    if config["replaceValues"]:
-                        logger.info("Replacing values in rows")
-                        for current_replacement_pair in config["rowValuesToReplace"]:
-                            csv_utils.replace_in_rows(
-                                input_frame,
-                                current_replacement_pair.get("original"),
-                                current_replacement_pair.get("replacement"),
-                            )
                     if config["deleteColumns"]:
                         logger.info(
                             "Deleting specified columns: "
@@ -238,6 +222,22 @@ def process():
                         else:
                             logger.warning(
                                 "Columns specified for deletion do not exist in file, skipping..."
+                            )
+                    if config["normalizeHeaders"]:
+                        logger.info("Replacing characters in column headers")
+                        for current_replacement_pair in config["headerValuesToReplace"]:
+                            csv_utils.replace_char_in_headers(
+                                input_frame,
+                                current_replacement_pair.get("original"),
+                                current_replacement_pair.get("replacement"),
+                            )
+                    if config["replaceValues"]:
+                        logger.info("Replacing values in rows")
+                        for current_replacement_pair in config["rowValuesToReplace"]:
+                            csv_utils.replace_in_rows(
+                                input_frame,
+                                current_replacement_pair.get("original"),
+                                current_replacement_pair.get("replacement"),
                             )
 
                     # write out file

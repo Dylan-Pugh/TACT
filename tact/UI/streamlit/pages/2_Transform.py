@@ -55,6 +55,8 @@ target_data_columns = st.multiselect(
     default=list(data_dict.keys()),
 )
 
+# We initialize the constants table here so that editing is enabled be default
+# Compensating for weird Streamlit behavior
 with st.expander(label="Define constants (optional)", expanded=True):
     constants = st.experimental_data_editor(
         data=transform_config.get("constants")

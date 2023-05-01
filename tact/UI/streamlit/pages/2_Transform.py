@@ -74,6 +74,14 @@ split_fields = st.checkbox(
     label="Split input column into multiple columns",
     value=transform_config.get("split_fields"),
 )
+set_occurrence_status = st.checkbox(
+    label="Set occurrence status (present/absent) for each record",
+    value=transform_config.get("set_occurrence_status"),
+)
+gen_UUID = st.checkbox(
+    label="Generate UUID for each record",
+    value=transform_config.get("gen_UUID"),
+)
 
 results_column = st.text_input(
     label="Column name for results:", value=transform_config.get("results_column")
@@ -93,6 +101,8 @@ if st.button(label="Flip It!"):
             "drop_units": drop_units,
             "drop_empty_records": drop_empty_records,
             "split_fields": split_fields,
+            "set_occurrence_status": set_occurrence_status,
+            "gen_UUID": gen_UUID,
             "constants": constants,
         }
 

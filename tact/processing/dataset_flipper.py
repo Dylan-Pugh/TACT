@@ -5,7 +5,15 @@ from tact.control.logging_controller import LoggingController as loggingControll
 logger = loggingController.get_logger(__name__)
 
 
-def enumerate_row(row, field, results_column: str, split_fields: bool, constants):
+def enumerate_row(
+    row,
+    field,
+    results_column: str,
+    split_fields: bool,
+    set_occurrence_status: bool,
+    gen_UUID: bool,
+    constants,
+):
     # expands rows which contain multiple observations into discrete records
     row_data = row[1]
     organism_count = row_data[field]
@@ -47,17 +55,17 @@ def enumerate_row(row, field, results_column: str, split_fields: bool, constants
     # obtained from the metadata
     enumerated_row["organismQuantityType"] = "individuals per m2"
 
-    # this condition should always be True, but leaving check for completeness
-    enumerated_row["occurrenceStatus"] = (
-        "present"
-        if pd.to_numeric(organism_count) > 0 and organism_count != "NaN"
-        else "absent"
-    )
-    # generate a unique occurrenceID here
-    enumerated_row["occurrenceID"] = uuid.uuid4()
+    if set_occurrence_status:
+        # this condition should always be True, but leaving check for completeness
+        enumerated_row["occurrenceStatus"] = (
+            "present"
+            if pd.to_numeric(organism_count) > 0 and organism_count != "NaN"
+            else "absent"
+        )
 
-    # this is consistent across records
-    enumerated_row["basisOfRecord"] = "HumanObservation"
+    if gen_UUID:
+        # generate a unique occurrenceID here
+        enumerated_row["occurrenceID"] = uuid.uuid4()
 
     # add constants
     for key, value in constants.items():
@@ -73,6 +81,8 @@ def process(
     drop_units,
     drop_empty_records,
     split_fields: bool,
+    set_occurrence_status: bool,
+    gen_UUID: bool,
     constants: dict = {},
 ):
     # select only rows where there is at least one valid (non-zero count) record
@@ -96,7 +106,13 @@ def process(
                 continue
             else:
                 flipped_row = enumerate_row(
-                    row, field, results_column, split_fields, constants
+                    row,
+                    field,
+                    results_column,
+                    split_fields,
+                    set_occurrence_status,
+                    gen_UUID,
+                    constants,
                 )
 
                 # delete other records from flipped row

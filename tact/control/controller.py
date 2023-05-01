@@ -336,6 +336,8 @@ def flip_dataset():
         transform_config.get("drop_units"),
         transform_config.get("drop_empty_records"),
         transform_config.get("split_fields"),
+        transform_config.get("set_occurrence_status"),
+        transform_config.get("gen_UUID"),
         transform_config.get("constants"),
     )
 

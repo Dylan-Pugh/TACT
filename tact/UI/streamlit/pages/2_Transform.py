@@ -57,7 +57,9 @@ target_data_columns = st.multiselect(
 
 with st.expander(label="Define constants (optional)", expanded=True):
     constants = st.experimental_data_editor(
-        data=transform_config.get("constants"),
+        data=transform_config.get("constants")
+        if transform_config.get("constants")
+        else {"constant_key": "constant_value"},
         use_container_width=True,
         num_rows="dynamic",
     )

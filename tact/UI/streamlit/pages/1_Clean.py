@@ -98,7 +98,7 @@ def display_analysis(config, api_handle):
                 num_rows="dynamic",
             )
 
-            st.caption(body="Row Values to Repalace")
+            st.caption(body="Row Values to Replace")
             updated_row_values = st.experimental_data_editor(
                 key="rowValuesToReplace",
                 data=config["rowValuesToReplace"],
@@ -108,11 +108,21 @@ def display_analysis(config, api_handle):
 
         col8, col9 = st.columns([1, 4])
 
-        aggregated_time_fields = list(config.get("dateFields").values()) + list(
-            config.get("timeField").values()
-        )
+        aggregated_time_fields = [
+            field
+            for field in list(config.get("dateFields").values())
+            + list(config.get("timeField").values())
+            if field != "Not Found"
+        ]
 
         with col9:
+            columnsForReplace = st.multiselect(
+                key="columnsForReplace",
+                label="Target Columns for Row Replacement (blank will target all columns)",
+                options=config.get("fieldNames"),
+                default=[],
+            )
+
             columnsToDelete = st.multiselect(
                 key="columnsToDelete",
                 label="Columns To Delete",
@@ -163,7 +173,6 @@ Operations for Cleaning Input Data
 """
 )
 
-config = api_handle.get_config(config_type="parser")
 
 # df will be null if inputPath is a directory
 data_dict = api_handle.get_data(nrows=10)
@@ -175,6 +184,7 @@ if data_dict:
 
 with st.expander(label="Parser Settings", expanded=True):
     api_handle.analyze()
+    config = api_handle.get_config(config_type="parser")
     display_analysis(config, api_handle)
 
 with st.expander(label="Preview", expanded=True):

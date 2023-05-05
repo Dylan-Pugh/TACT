@@ -49,12 +49,22 @@ def drop_unnamed_columns(input_frame):
 
 def replace_char_in_headers(input_frame, char_to_replace, replacement_char):
     input_frame.columns = input_frame.columns.str.replace(
-        char_to_replace, replacement_char
-    )
+        r"\s+|_+", " ", regex=True
+    ).str.replace(char_to_replace, replacement_char)
 
 
-def replace_in_rows(input_frame, value_to_replace, replacement_value):
-    input_frame.replace(value_to_replace, replacement_value, inplace=True)
+def replace_in_rows(
+    input_frame, value_to_replace, replacement_value, target_columns=None
+):
+    if target_columns is not None and target_columns:
+        for current_column in target_columns:
+            input_frame[current_column].replace(
+                value_to_replace, replacement_value, inplace=True
+            )
+            input_frame[current_column].fillna(value=replacement_value, inplace=True)
+    else:
+        input_frame.replace(value_to_replace, replacement_value, inplace=True)
+        input_frame.fillna(value=replacement_value, inplace=True)
 
 
 def delete_columns(input_frame, columns_to_delete):

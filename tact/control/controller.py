@@ -2,6 +2,7 @@ import argparse
 import errno
 import json
 import os
+import re
 import pandas as pd
 from typing import Any, Dict, Union
 
@@ -10,6 +11,7 @@ import tact.processing.dataset_flipper as flipper
 import tact.processing.datetime_parser as parser
 import tact.processing.quality_checker as quality_checker
 import tact.processing.xml_generator as xml_generator
+import tact.processing.taxonomic_name_matcher as taxa_matcher
 import tact.util.constants as constants
 import tact.util.csv_utils as csv_utils
 from tact.control.logging_controller import LoggingController as loggingController
@@ -238,6 +240,7 @@ def process():
                                 input_frame,
                                 current_replacement_pair.get("original"),
                                 current_replacement_pair.get("replacement"),
+                                config.get("columnsForReplace"),
                             )
 
                     # write out file
@@ -343,10 +346,36 @@ def flip_dataset():
 
     parser_config = get_settings_json("parser")
 
+    # create list of possible time fields
+    time_fields = [
+        parser_config.get("parsedColumnName"),
+        parser_config.get("timeField").get("time"),
+    ]
+
+    # create regular expression that matches "Date" and "time" regardless of capitalization
+    regex = re.compile(r"(?i)date|time")
+
+    # find first time field that exists in flipped_df or matches the regular expression
+    for time_field in time_fields:
+        if time_field in flipped_df.columns:
+            sort_by_column = time_field
+            break
+        elif regex.search(time_field):
+            match = regex.search(time_field).group(0)
+            sort_by_column = next(
+                (col for col in flipped_df.columns if match.lower() in col.lower()),
+                None,
+            )
+            if sort_by_column:
+                break
+    else:
+        # if no time field is found, raise an exception
+        raise ValueError("No valid time field found in flipped_df")
+
     # sort by parsed time and flipped column name, ascending
     flipped_df.sort_values(
         by=[
-            parser_config.get("parsedColumnName"),
+            sort_by_column,
             transform_config.get("results_column"),
         ],
         ascending=True,
@@ -388,6 +417,26 @@ def combine_rows():
         transform_config.get("combine_output_path"),
         parser_config["inputFileEncoding"],
     )
+
+
+def validate_taxonomic_names(input_frame: pd.DataFrame, target_column: str):
+    transform_config = get_settings_json("transform")
+    target_column = transform_config.get("results_column")
+
+    input_frame = get_data(kwargs={"format": "dataframe"})
+
+    lut_worms = taxa_matcher.gen_worms_lookup(input_frame, target_column)
+
+    input_frame = pd.merge(input_frame, lut_worms, how="left", on=target_column)
+
+    return input_frame
+
+
+def generate_taxonomic_preview() -> Dict:
+    # open file, maybe only fetch a subset of rows ~10?
+    input_frame = get_data(kwargs={"format": "dataframe"})
+
+    return taxa_matcher.preview_changes(df=input_frame)
 
 
 def run():

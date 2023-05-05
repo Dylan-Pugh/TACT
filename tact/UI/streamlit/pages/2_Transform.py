@@ -55,7 +55,7 @@ target_data_columns = st.multiselect(
     default=list(data_dict.keys()),
 )
 
-# We initialize the constants table here so that editing is enabled be default
+# We initialize the constants table here so that editing is enabled by default
 # Compensating for weird Streamlit behavior
 with st.expander(label="Define constants (optional)", expanded=True):
     constants = st.experimental_data_editor(
@@ -119,6 +119,7 @@ if st.button(label="Flip It!"):
 
         if api_handle.transform(operation="enumerate_columns"):
             st.success("Success - dataset flipped")
+            st.balloons()
         else:
             st.error("Failed to flip dataset.")
 

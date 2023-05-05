@@ -27,6 +27,7 @@ def compile_settings_file(input_string):
     settings_JSON["deleteColumns"] = True
     settings_JSON["headerValuesToReplace"] = constants.DEFAULT_HEADER_REPLACEMENTS
     settings_JSON["rowValuesToReplace"] = constants.DEFAULT_ROW_VALUE_REPLACEMENTS
+    settings_JSON["columnsForReplace"] = []
     settings_JSON["columnsToDelete"] = ["VALUES", "TO", "DELETE"]
 
     # For testing

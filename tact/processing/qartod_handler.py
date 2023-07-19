@@ -1,4 +1,3 @@
-from distutils.command.config import config
 import pandas as pd
 from ioos_qc import qartod
 from ioos_qc.config import QcConfig

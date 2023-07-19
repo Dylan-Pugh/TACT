@@ -64,7 +64,7 @@ with col3:
 
 if submit_button:
     if api_handle.update_config(
-        config_type="parser", config_to_apply={"inputPath": input}
+        config_type="parser", config_to_apply={"inputPath": input, "pathForPreview": input}
     ):
         st.success("Config updated.")
 

@@ -23,7 +23,7 @@ def create_iso_time(csv_row, date_fields, time_field):
         # Using the Unix epoch as the defualt date - this should never be necessary
         # and is only to assign the correct timezone to the calculated time
         default_date = datetime.datetime(1970, 1, 1, 0, 0, 0)
-        default_date = timezone("US/Eastern").localize(default_date)
+        default_date = timezone("UTC").localize(default_date)
 
         date_string = ""
 

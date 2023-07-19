@@ -53,11 +53,24 @@ def analysis():
 
 @app.route("/preview")
 def preview():
-    result = controller.generate_preview()
-    if result:
-        return make_response(({"message": "Preview generated.", "data": result}, 200))
+    preview_type = request.args.get("preview_type")
+
+    if preview_type and preview_type == "taxonomic_names":
+        result = controller.generate_taxonomic_preview()
+        if result:
+            return make_response(
+                ({"message": "Taxonomic name preview generated.", "data": result}, 200)
+            )
+        else:
+            return make_response(("Taxonomic name preview generation failed.", 404))
     else:
-        return make_response(("Preview generation failed.", 404))
+        result = controller.generate_preview()
+        if result:
+            return make_response(
+                ({"message": "Preview generated.", "data": result}, 200)
+            )
+        else:
+            return make_response(("Preview generation failed.", 404))
 
 
 @app.route("/process")
@@ -84,19 +97,24 @@ def transform():
 
     if operation == "enumerate_columns":
         if controller.flip_dataset():
-            return make_response(("Dataset flipped successfully", 200))
+            return make_response(("Dataset flipped successfully.", 200))
         else:
             return make_response(("Failed to flip dataset.", 404))
     elif operation == "combine_rows":
         if controller.combine_rows():
-            return make_response(("Rows combined successfully", 200))
+            return make_response(("Rows combined successfully.", 200))
         else:
             return make_response(("Failed to combine rows.", 404))
+    elif operation == "validate_taxa":
+        if controller.validate_taxonomic_names():
+            return make_response(("Taxonomic names validated.", 200))
+        else:
+            return make_response(("Failed to validate taxonomic names.", 404))
     else:
         return make_response(
             (
                 {
-                    "message": "Invalid operation, please select enumerate_columns, or combine_rows."
+                    "message": "Invalid operation, please select enumerate_columns, combine_rows, or validate_taxa."
                 },
                 400,
             )

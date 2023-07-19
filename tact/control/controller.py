@@ -419,24 +419,37 @@ def combine_rows():
     )
 
 
-def validate_taxonomic_names(input_frame: pd.DataFrame, target_column: str):
+def validate_taxonomic_names():
     transform_config = get_settings_json("transform")
+    parser_config = get_settings_json("paser")
+
     target_column = transform_config.get("results_column")
+    output_path = transform_config.get("transform_output_path")
+    output_encoding = parser_config.get("inputFileEncoding")
 
     input_frame = get_data(kwargs={"format": "dataframe"})
 
-    lut_worms = taxa_matcher.gen_worms_lookup(input_frame, target_column)
+    try:
+        lut_worms = taxa_matcher.gen_worms_lookup(input_frame, target_column)
 
-    input_frame = pd.merge(input_frame, lut_worms, how="left", on=target_column)
+        input_frame = pd.merge(input_frame, lut_worms, how="left", on=target_column)
 
-    return input_frame
+        csv_utils.write_out_data_frame(input_frame, output_path, output_encoding)
+
+        return True
+    except Exception as e:
+        logger.error(f"Failed to validate taxonomic names: {e}")
+        return False
 
 
 def generate_taxonomic_preview() -> Dict:
+    transform_config = get_settings_json("transform")
+    target_column = transform_config.get("results_column")
+
     # open file, maybe only fetch a subset of rows ~10?
     input_frame = get_data(kwargs={"format": "dataframe"})
 
-    return taxa_matcher.preview_changes(df=input_frame)
+    return taxa_matcher.preview_changes(df=input_frame, target_column=target_column)
 
 
 def run():

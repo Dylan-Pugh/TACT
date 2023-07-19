@@ -47,15 +47,15 @@ def gen_worms_lookup(occurrence: pd.DataFrame, target_column: str):
     return worms_lut
 
 
-def preview_changes(df):
-    lut_worms = gen_worms_lookup(df)
+def preview_changes(df, target_column: str):
+    worms_lut = gen_worms_lookup(df, target_column)
 
     # create a dictionary to store before/after values
     preview = {}
 
-    for name in df["scientificName"].unique():
-        original = df.loc[df["scientificName"] == name, "acceptedname"].values[0]
-        new = lut_worms.loc[lut_worms["scientificName"] == name, "acceptedname"].values[
+    for name in df[target_column].unique():
+        original = df.loc[df[target_column] == name, "acceptedname"].values[0]
+        new = worms_lut.loc[worms_lut["scientificName"] == name, "acceptedname"].values[
             0
         ]
 

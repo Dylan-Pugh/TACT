@@ -444,7 +444,7 @@ def validate_taxonomic_names():
 
 def generate_taxonomic_preview() -> Dict:
     transform_config = get_settings_json("transform")
-    target_column = transform_config.get("results_column")
+    target_column = transform_config.get("target_column_for_taxon")
 
     # open file, maybe only fetch a subset of rows ~10?
     input_frame = get_data(kwargs={"format": "dataframe"})

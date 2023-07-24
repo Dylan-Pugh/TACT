@@ -31,7 +31,14 @@ def gen_worms_lookup(occurrence: pd.DataFrame, target_column: str):
     # Query pyworms for each scientific name and add results to lut_worms
     for index, row in worms_lut.iterrows():
         logger.debug("Searching for scientific name = %s" % row["scientificName"])
-        resp = pyworms.aphiaRecordsByMatchNames(row["scientificName"])[0][0]
+
+        try:
+            resp = pyworms.aphiaRecordsByMatchNames(row["scientificName"])[0][0]
+        except Exception as e:
+            current_name = row["scientificName"]
+            print(f"Lookup failed for: {current_name}. Error: {e}")
+            continue
+
         worms_lut.loc[index, "acceptedname"] = resp["valid_name"]
         worms_lut.loc[index, "acceptedID"] = resp["valid_AphiaID"]
         worms_lut.loc[index, "scientificNameID"] = resp["lsid"]

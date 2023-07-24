@@ -10,40 +10,7 @@ from tact.control.logging_controller import LoggingController as loggingControll
 logger = loggingController.get_logger(__name__)
 
 
-def compile_settings_file(input_string):
-    settings_JSON = {}
-    settings_JSON["inputPath"] = input_string
-    settings_JSON["pathForPreview"] = input_string
-    settings_JSON["isDirectory"] = False
-    settings_JSON["concatFiles"] = False
-    settings_JSON["inputFileEncoding"] = constants.DEFAULT_ENCODING
-    settings_JSON["parsedColumnName"] = constants.DEFAULT_PARSED_COLUMN_NAME
-    settings_JSON["parsedColumnPosition"] = constants.DEFAULT_PARSED_COLUMN_POSITION
-    settings_JSON["dropDuplicates"] = True
-    settings_JSON["fixTimes"] = True
-    settings_JSON["dropEmpty"] = True
-    settings_JSON["normalizeHeaders"] = True
-    settings_JSON["replaceValues"] = True
-    settings_JSON["deleteColumns"] = True
-    settings_JSON["headerValuesToReplace"] = constants.DEFAULT_HEADER_REPLACEMENTS
-    settings_JSON["rowValuesToReplace"] = constants.DEFAULT_ROW_VALUE_REPLACEMENTS
-    settings_JSON["columnsForReplace"] = []
-    settings_JSON["columnsToDelete"] = ["VALUES", "TO", "DELETE"]
-
-    # For testing
-    settings_JSON["dropDuplicates"] = True
-
-    outfile = "/OUT_" + os.path.basename(input_string)
-    settings_JSON["outputFilePath"] = os.path.dirname(input_string) + outfile
-
-    if os.path.isdir(input_string):
-        settings_JSON["isDirectory"] = True
-        settings_JSON["outputFilePath"] = input_string + "/combined.csv"
-
-    return settings_JSON
-
-
-def find_date_components(field_names, settings_file):
+def find_date_components(field_names):
     mn = dy = yr = "Not Found"
 
     date_search_pattern = re.compile("^date.*", re.IGNORECASE)
@@ -54,8 +21,7 @@ def find_date_components(field_names, settings_file):
     for current in field_names:
         date_match = date_search_pattern.match(current)
         if date_match:
-            settings_file["dateFields"] = {"date": date_match.group(0)}
-            return settings_file
+            return {"date": date_match.group(0)}
 
         month_match = month_search_pattern.match(current)
         if month_match:
@@ -72,11 +38,10 @@ def find_date_components(field_names, settings_file):
             yr = year_match.group(0)
             continue
 
-    settings_file["dateFields"] = {"year": yr, "month": mn, "day": dy}
-    return settings_file
+    return {"year": yr, "month": mn, "day": dy}
 
 
-def find_time_field(field_names, settings_file):
+def find_time_field(field_names):
     hr = min = sec = "Not Found"
 
     time_search_pattern = re.compile("^time.*", re.IGNORECASE)
@@ -87,8 +52,7 @@ def find_time_field(field_names, settings_file):
     for current in field_names:
         time_match = time_search_pattern.match(current)
         if time_match:
-            settings_file["timeField"] = {"time": time_match.group(0)}
-            return settings_file
+            return {"time": time_match.group(0)}
 
         hour_match = hour_search_pattern.match(current)
         if hour_match:
@@ -105,14 +69,10 @@ def find_time_field(field_names, settings_file):
             sec = second_match.string
             continue
 
-    settings_file["timeField"] = {"hour": hr, "minute": min, "second": sec}
-    return settings_file
+    return {"hour": hr, "minute": min, "second": sec}
 
 
 def process_file(input_path, input_encoding):
-    # compile basic settings
-    # logger.info("Compiling settings")
-    # settings_JSON = compile_settings_file(input_path)
 
     with open(constants.PARSER_CONFIG_FILE_PATH) as json_file:
         config = json.load(json_file)
@@ -155,9 +115,11 @@ def process_file(input_path, input_encoding):
     config["fieldNames"] = field_names
 
     # get date & time fields
-    find_date_components(field_names, config)
-    find_time_field(field_names, config)
+    config["dateFields"] = find_date_components(field_names)
+    config["timeField"] = find_time_field(field_names)
 
+    # THIS SHOULD NOT BE WRITING SETTINGS DIRECTLY :(
+    # USE THE API or update_settings in controller
     # write out settings file
     with open(constants.CONFIG_FILE_PATHS["parser"], "w") as outfile:
         json.dump(config, outfile)
@@ -175,7 +137,7 @@ def process_file(input_path, input_encoding):
 def create_preview(config):
     logger.info("Generating preview")
 
-    # parse preview file file
+    # parse preview file
     with open(config["pathForPreview"], encoding=config["inputFileEncoding"]) as f:
         reader = csv.DictReader(f)
 

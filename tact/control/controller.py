@@ -421,7 +421,7 @@ def combine_rows():
 
 def validate_taxonomic_names():
     transform_config = get_settings_json("transform")
-    parser_config = get_settings_json("paser")
+    parser_config = get_settings_json("parser")
 
     target_column = transform_config.get("results_column")
     output_path = transform_config.get("transform_output_path")

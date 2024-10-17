@@ -156,3 +156,4 @@ tact/UI/yarn.lock
 tact/UI/.yarnclean
 tact/UI/.pnp.js
 tact/UI/.yarnrc.yml
+tact/test/*

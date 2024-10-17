@@ -3,6 +3,41 @@ An extensible framework and GUI for processing data files. TACT is a DMAC tool t
 
 The goal of this project is to collect a wide array of processing scripts into a tool which is useful to both technical and non-technical users. 
 
+## Quick Start
+1. Clone this repo locally
+2. Use Conda/Mamba to create a new environment from the `tact/environment.yml` file
+3. Using VScode, add the following configs to your `launch.json` file: 
+```JSON
+        {
+            "name": "TACT API",
+            "type": "python",
+            "request": "launch",
+            "env": {
+                "PYTHONPATH": "${workspaceRoot}"
+            },
+            "program": "API/tact_api.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Steamlit GUI",
+            "type": "python",
+            "request": "launch",
+            "module": "streamlit",
+            "args": [
+                "run",
+                "UI/streamlit/TACT.py"
+            ],
+            "env": {
+                "API_URL": "http://127.0.0.1:5000"
+            }
+        }
+```
+**Note**: You may need to provide absolute paths to the program files
+
+4. Launch `TACT API` from the Run and Debug menu
+5. Launch `Steamlit GUI` from the Run and Debug menu
+6. TACT should open in a new browser window
+
 ## Structure
 TACT is config-driven, and the basic workflow is as follows:
 
@@ -55,3 +90,6 @@ Diagram of TACT structure:
 - Move to a different GUI framework
 - Complete in-process functionality
 - Add new functionality! 
+
+## Contributing
+TACT started as a purely internal tool, and is still a **work in progress**! Please feel free to open issues and PRs with improvements/fixes.

@@ -45,7 +45,7 @@ TACT is config-driven, and the basic workflow is as follows:
 1. Application starts up, reads config files
 2. User modifies config files via the [API](https://github.com/Dylan-Pugh/TACT/blob/docs/tact/TACT.postman_collection.json) (e.g. by providing a file path to the target file)
 3. Config changes are saved
-4. User initiatives specific operations via API
+4. User initiates specific operations via API
 5. Repeat
 
 Diagram of TACT structure:

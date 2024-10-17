@@ -69,7 +69,7 @@ def display_analysis(config, api_handle):
                 value=config["parsedColumnName"],
             )
             st.caption(body="Date Fields")
-            dateFields = st.experimental_data_editor(
+            dateFields = st.data_editor(
                 key="dateFields",
                 data=config["dateFields"],
                 use_container_width=True,
@@ -77,7 +77,7 @@ def display_analysis(config, api_handle):
             )
             st.caption(body="Header Values to Replace")
 
-            updated_header_values = st.experimental_data_editor(
+            updated_header_values = st.data_editor(
                 key="headerValuesToReplace",
                 data=config["headerValuesToReplace"],
                 use_container_width=True,
@@ -91,7 +91,7 @@ def display_analysis(config, api_handle):
                 max_value=len(config["fieldNames"]),
             )
             st.caption(body="Time Fields")
-            timeField = st.experimental_data_editor(
+            timeField = st.data_editor(
                 key="timeField",
                 data=config["timeField"],
                 use_container_width=True,
@@ -99,7 +99,7 @@ def display_analysis(config, api_handle):
             )
 
             st.caption(body="Row Values to Replace")
-            updated_row_values = st.experimental_data_editor(
+            updated_row_values = st.data_editor(
                 key="rowValuesToReplace",
                 data=config["rowValuesToReplace"],
                 use_container_width=True,

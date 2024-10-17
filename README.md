@@ -6,7 +6,8 @@ The goal of this project is to collect a wide array of processing scripts into a
 ## Quick Start
 1. Clone this repo locally
 2. Use Conda/Mamba to create a new environment from the `tact/environment.yml` file
-3. Using VScode, add the following configs to your `launch.json` file: 
+3. Activate the new `tact` environment
+4. Using VScode, add the following configs to your `launch.json` file: 
 ```JSON
         {
             "name": "TACT API",
@@ -34,9 +35,9 @@ The goal of this project is to collect a wide array of processing scripts into a
 ```
 **Note**: You may need to provide absolute paths to the program files
 
-4. Launch `TACT API` from the Run and Debug menu
-5. Launch `Steamlit GUI` from the Run and Debug menu
-6. TACT should open in a new browser window
+5. Launch `TACT API` from the Run and Debug menu
+6. Launch `Steamlit GUI` from the Run and Debug menu
+7. TACT should open in a new browser window
 
 ## Structure
 TACT is config-driven, and the basic workflow is as follows:

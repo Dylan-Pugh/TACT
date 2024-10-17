@@ -1,11 +1,13 @@
 # TACT
-An extensible framework and GUI for processing data files. TACT is a DMAC tool to help organize Python scripts by placing their functionality behind a control layer and an API, which users can access via the command line, or a GUI. The goal of this project is to collect a wide array of processing scripts into a tool which is useful to both technical and non-technical users. 
+An extensible framework and GUI for processing data files. TACT is a DMAC tool to help organize Python scripts by placing their functionality behind a control layer and an API, which users can access via the command line, or a GUI. 
+
+The goal of this project is to collect a wide array of processing scripts into a tool which is useful to both technical and non-technical users. 
 
 ## Structure
 TACT is config-driven, and the basic workflow is as follows:
 
 1. Application starts up, reads config files
-2. User modifies config files via API (e.g. by providing a file path to the target file)
+2. User modifies config files via the [API](https://github.com/Dylan-Pugh/TACT/blob/docs/tact/TACT.postman_collection.json) (e.g. by providing a file path to the target file)
 3. Config changes are saved
 4. User initiatives specific operations via API
 5. Repeat
@@ -47,7 +49,7 @@ Diagram of TACT structure:
 - Package management: [Micromamba](https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html)
 
 ## Future Plans/Things That Need Help!
-- Improve documentation
+- Improve documentation (add local development steps)
 - CI/CD steps
 - Testing
 - Move to a different GUI framework

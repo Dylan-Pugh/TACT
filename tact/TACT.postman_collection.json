@@ -1,0 +1,344 @@
+{
+	"info": {
+		"name": "TACT",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Local Test",
+			"item": [
+				{
+					"name": "Config",
+					"item": [
+						{
+							"name": "GET Parser Config",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:5000/config/parser",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "5000",
+									"path": [
+										"config",
+										"parser"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET Log Config",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:5000/config/LOG_CONFIG_PATH",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "5000",
+									"path": [
+										"config",
+										"LOG_CONFIG_PATH"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET QA Config",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:5000/config/QA_CONFIG_PATH",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "5000",
+									"path": [
+										"config",
+										"QA_CONFIG_PATH"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET XML Config",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:5000/config/XML_CONFIG_PATH",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "5000",
+									"path": [
+										"config",
+										"XML_CONFIG_PATH"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "PATCH Log Config",
+							"request": {
+								"method": "PATCH",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:5000/config/LOG_CONFIG_PATH?outgoing_config_json={\"logLevel\": \"INFO\", \"backupCount\": 5, \"consoleFormatting\": \"%(name)s - %(levelname)s - %(message)s\", \"fileFormatting\": \"%(asctime)s - %(name)s - %(levelname)s - %(message)s\"}",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "5000",
+									"path": [
+										"config",
+										"LOG_CONFIG_PATH"
+									],
+									"query": [
+										{
+											"key": "outgoing_config_json",
+											"value": "{\"logLevel\": \"INFO\", \"backupCount\": 5, \"consoleFormatting\": \"%(name)s - %(levelname)s - %(message)s\", \"fileFormatting\": \"%(asctime)s - %(name)s - %(levelname)s - %(message)s\"}",
+											"description": "Config JSON to apply"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "PATCH Parser Config",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://127.0.0.1:5000/config/parser",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "5000",
+									"path": [
+										"config",
+										"parser"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET Specific Config Value",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:5000/config/parser?field=timeField",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "5000",
+									"path": [
+										"config",
+										"parser"
+									],
+									"query": [
+										{
+											"key": "field",
+											"value": "timeField"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Analyze",
+					"item": [
+						{
+							"name": "GET analysis",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:5000/analysis",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "5000",
+									"path": [
+										"analysis"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Preview",
+					"item": [
+						{
+							"name": "GET Preview",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:5000/preview",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "5000",
+									"path": [
+										"preview"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET Taxa Preview",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:5000/preview?preview_type=taxonomic_names",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "5000",
+									"path": [
+										"preview"
+									],
+									"query": [
+										{
+											"key": "preview_type",
+											"value": "taxonomic_names"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Process",
+					"item": [
+						{
+							"name": "GET Processed File",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:5000/process",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "5000",
+									"path": [
+										"process"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Data",
+					"item": [
+						{
+							"name": "Get Dataset as Dict",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:5000/data?format=dict",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "5000",
+									"path": [
+										"data"
+									],
+									"query": [
+										{
+											"key": "format",
+											"value": "dict"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Transform",
+					"item": []
+				}
+			]
+		}
+	]
+}

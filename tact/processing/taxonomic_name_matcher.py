@@ -13,6 +13,7 @@ def gen_worms_lookup(occurrence: pd.DataFrame, target_column: str):
 
     # Add empty columns for each header
     headers = [
+        "matchType",
         "acceptedname",
         "acceptedID",
         "scientificNameID",
@@ -38,7 +39,8 @@ def gen_worms_lookup(occurrence: pd.DataFrame, target_column: str):
             current_name = row["scientificName"]
             print(f"Lookup failed for: {current_name}. Error: {e}")
             continue
-
+        
+        worms_lut.loc[index, "matchType"] = resp["match_type"]
         worms_lut.loc[index, "acceptedname"] = resp["valid_name"]
         worms_lut.loc[index, "acceptedID"] = resp["valid_AphiaID"]
         worms_lut.loc[index, "scientificNameID"] = resp["lsid"]
@@ -61,12 +63,23 @@ def preview_changes(df, target_column: str):
     preview = {}
 
     for name in df[target_column].unique():
-        original = df.loc[df[target_column] == name, "acceptedname"].values[0]
-        new = worms_lut.loc[worms_lut["scientificName"] == name, "acceptedname"].values[
-            0
-        ]
+        new = worms_lut.loc[worms_lut["scientificName"] == name]
+   
+        new_dict = {
+            "matchType": new["matchType"].values[0],
+            "acceptedname": new["acceptedname"].values[0],
+            "acceptedID": new["acceptedID"].values[0],
+            "scientificNameID": new["scientificNameID"].values[0],
+            "kingdom": new["kingdom"].values[0],
+            "phylum": new["phylum"].values[0],
+            "class": new["class"].values[0],
+            "order": new["order"].values[0],
+            "family": new["family"].values[0],
+            "genus": new["genus"].values[0],
+            "scientificNameAuthorship": new["scientificNameAuthorship"].values[0],
+            "taxonRank": new["taxonRank"].values[0],
+        }
 
-        if original != new:
-            preview[name] = {"before": original, "after": new}
+        preview[name] = {"before": name, "after": new_dict}
 
     return preview

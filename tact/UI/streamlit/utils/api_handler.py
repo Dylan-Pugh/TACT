@@ -58,9 +58,12 @@ class ApiHandler:
         else:
             raise Exception(f"Failed to analyze: {response.status_code}")
 
-    def generate_preview(self):
+    def generate_preview(self, preview_type: str = None):
+        params = {"preview_type": preview_type}
+
         url = f"{self.base_url}/preview"
-        response = requests.get(url)
+        response = requests.get(url, params=params) if params else requests.get(url)
+
         if response.status_code == 200:
             return response.json()["data"]
         else:

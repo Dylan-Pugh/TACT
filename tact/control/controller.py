@@ -103,23 +103,21 @@ def get_data(kwargs: Dict = {}) -> Union[pd.DataFrame, str, Dict]:
             kwargs["nrows"] = int(kwargs["nrows"])
         except ValueError as e:
             logger.error(f"Error parsing nrows arg: {e}")
-    if "request_type" in kwargs:
-        request_type = kwargs.pop("request_type")
-        try:
-            with open(constants.CONFIG_FILE_PATHS[request_type]) as json_file:
-                config = json.load(json_file)
-                if request_type == "parser":
-                    file_path = config.get("inputPath")
-                elif request_type == "transform":
-                    file_path = config.get("transform_output_path")
-        except ValueError as e:
-            logger.error(
-                f"Unknown request type: {request_type}: {e}"
-            )
-    else:
-        with open(constants.CONFIG_FILE_PATHS["parser"]) as json_file:
+    
+    # Default to parser if not provided
+    request_type = kwargs.pop("request_type", "parser")
+    try:
+        with open(constants.CONFIG_FILE_PATHS[request_type]) as json_file:
             config = json.load(json_file)
-            file_path = config.get("inputPath")
+            if request_type == "parser":
+                file_path = config.get("inputPath")
+            elif request_type == "transform":
+                file_path = config.get("transform_output_path")
+    except ValueError as e:
+        logger.error(
+            f"Unknown request type: {request_type}: {e}"
+        )
+
 
 
     if is_directory(file_path):

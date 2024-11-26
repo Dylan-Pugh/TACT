@@ -21,12 +21,12 @@ logger = loggingController.get_logger(__name__)
 
 
 def get_settings_json(config_type):
-    logger.info(f"Fetching target config: {config_type}")
+    logger.debug(f"Fetching target config: {config_type}")
 
     try:
         # open settings
         with open(constants.CONFIG_FILE_PATHS[config_type]) as json_file:
-            logger.info("File found: %s", constants.CONFIG_FILE_PATHS[config_type])
+            logger.debug(f"File found: {constants.CONFIG_FILE_PATHS[config_type]}")
             return json.load(json_file)
     except (KeyError, FileNotFoundError) as ex:
         logger.error(str(ex))
@@ -38,7 +38,7 @@ def update_settings(config_type: str, json_to_apply: Dict[str, Any]) -> bool:
     try:
         # open settings
         with open(constants.CONFIG_FILE_PATHS[config_type], "r") as infile:
-            logger.info(f"File found: {constants.CONFIG_FILE_PATHS[config_type]}")
+            logger.debug(f"File found: {constants.CONFIG_FILE_PATHS[config_type]}")
 
             data = json.load(infile)
 
@@ -103,11 +103,24 @@ def get_data(kwargs: Dict = {}) -> Union[pd.DataFrame, str, Dict]:
             kwargs["nrows"] = int(kwargs["nrows"])
         except ValueError as e:
             logger.error(f"Error parsing nrows arg: {e}")
+    if "request_type" in kwargs:
+        request_type = kwargs.pop("request_type")
+        try:
+            with open(constants.CONFIG_FILE_PATHS[request_type]) as json_file:
+                config = json.load(json_file)
+                if request_type == "parser":
+                    file_path = config.get("inputPath")
+                elif request_type == "transform":
+                    file_path = config.get("transform_output_path")
+        except ValueError as e:
+            logger.error(
+                f"Unknown request type: {request_type}: {e}"
+            )
+    else:
+        with open(constants.CONFIG_FILE_PATHS["parser"]) as json_file:
+            config = json.load(json_file)
+            file_path = config.get("inputPath")
 
-    # open settings
-    with open(constants.PARSER_CONFIG_FILE_PATH) as json_file:
-        config = json.load(json_file)
-        file_path = config.get("inputPath")
 
     if is_directory(file_path):
         logger.info(f"Input path is directory: {file_path}")
@@ -117,7 +130,7 @@ def get_data(kwargs: Dict = {}) -> Union[pd.DataFrame, str, Dict]:
     else:
         if file_path.lower().endswith(".csv"):
             try:
-                df = pd.read_csv(filepath_or_buffer=config.get("inputPath"), **kwargs)
+                df = pd.read_csv(filepath_or_buffer=file_path, **kwargs)
 
                 if format == "dataframe":
                     return df
@@ -419,22 +432,48 @@ def combine_rows():
     )
 
 
+def prepare_worms_lookup() -> pd.DataFrame:
+    transform_config = get_settings_json("transform")
+
+    input_frame = get_data(kwargs={"format": "dataframe"})
+    target_column = transform_config.get("target_column_for_taxon")
+
+    worms_lut = taxa_matcher.gen_worms_lookup(occurrence=input_frame, target_column=target_column)
+
+    csv_utils.write_out_data_frame(
+        input_frame=worms_lut,
+        output_file=constants.WORMS_LOOKUP_PATH,
+        output_encoding="utf-8-sig",
+        )
+    
+    return worms_lut
+    
+
 def validate_taxonomic_names():
     transform_config = get_settings_json("transform")
     parser_config = get_settings_json("parser")
 
-    target_column = transform_config.get("results_column")
+    target_column = transform_config.get("target_column_for_taxon")
+    accepted_values = transform_config.get("accepted_taxon_matches")
     output_path = transform_config.get("transform_output_path")
     output_encoding = parser_config.get("inputFileEncoding")
 
     input_frame = get_data(kwargs={"format": "dataframe"})
 
     try:
-        lut_worms = taxa_matcher.gen_worms_lookup(input_frame, target_column)
+        lut_worms = pd.read_csv(constants.WORMS_LOOKUP_PATH)
 
-        input_frame = pd.merge(input_frame, lut_worms, how="left", on=target_column)
+        merged_data = taxa_matcher.merge_matched_taxa(
+            input_df=input_frame,
+            taxa_info=lut_worms,
+            target_values=accepted_values,
+            target_column=target_column
+            
+        )
 
-        csv_utils.write_out_data_frame(input_frame, output_path, output_encoding)
+        #input_frame = pd.merge(input_frame, lut_worms, how="left", on=target_column)
+
+        csv_utils.write_out_data_frame(merged_data, output_path, output_encoding)
 
         return True
     except Exception as e:
@@ -446,10 +485,12 @@ def generate_taxonomic_preview() -> Dict:
     transform_config = get_settings_json("transform")
     target_column = transform_config.get("target_column_for_taxon")
 
+    lut_worms = prepare_worms_lookup()
+
     # open file, maybe only fetch a subset of rows ~10?
     input_frame = get_data(kwargs={"format": "dataframe"})
 
-    return taxa_matcher.preview_changes(df=input_frame, target_column=target_column)
+    return taxa_matcher.preview_changes(input_df=input_frame, worms_lut=lut_worms, target_column=target_column)
 
 
 def run():

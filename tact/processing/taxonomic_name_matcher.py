@@ -106,8 +106,7 @@ def merge_matched_taxa(input_df: pd.DataFrame, taxa_info: pd.DataFrame, target_v
         if target_column != "scientificName":
             logger.warning(f"Input columns do not match lookup table. Renaming {target_column} to scientificName in source data.")
             input_df = input_df.rename({target_column: "scientificName"}, axis="columns")
-        # should we just create the target column here?
-        # We know it exists in the LUT, but not in the source data
+
         merged_data = pd.merge(input_df, taxa_info, how='left', on="scientificName")
     except Exception as e:
         logger.error(

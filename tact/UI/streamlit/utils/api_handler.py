@@ -23,7 +23,7 @@ class ApiHandler:
                 f"Failed to get settings for {config_type}: {response.status_code}"
             )
 
-    def get_data(self, format: Optional[str] = None, nrows: Optional[int] = None):
+    def get_data(self, format: Optional[str] = None, nrows: Optional[int] = None, request_type: Optional[str] = None):
         url = f"{self.base_url}/data"
         params = {}
 
@@ -31,6 +31,8 @@ class ApiHandler:
             params["format"] = format
         if nrows:
             params["nrows"] = nrows
+        if request_type:
+            params["request_type"] = request_type
 
         response = requests.get(url, params=params)
 

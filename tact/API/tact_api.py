@@ -105,16 +105,16 @@ def transform():
             return make_response(("Rows combined successfully.", 200))
         else:
             return make_response(("Failed to combine rows.", 404))
-    elif operation == "validate_taxa":
+    elif operation == "merge_taxa":
         if controller.validate_taxonomic_names():
-            return make_response(("Taxonomic names validated.", 200))
+            return make_response(("Taxonomic names merged.", 200))
         else:
-            return make_response(("Failed to validate taxonomic names.", 404))
+            return make_response(("Failed to merge taxonomic names.", 404))
     else:
         return make_response(
             (
                 {
-                    "message": "Invalid operation, please select enumerate_columns, combine_rows, or validate_taxa."
+                    "message": "Invalid operation, please select enumerate_columns, combine_rows, or merge_taxa."
                 },
                 400,
             )

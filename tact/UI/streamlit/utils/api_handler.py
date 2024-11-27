@@ -23,7 +23,7 @@ class ApiHandler:
                 f"Failed to get settings for {config_type}: {response.status_code}"
             )
 
-    def get_data(self, format: Optional[str] = None, nrows: Optional[int] = None):
+    def get_data(self, format: Optional[str] = None, nrows: Optional[int] = None, request_type: Optional[str] = None):
         url = f"{self.base_url}/data"
         params = {}
 
@@ -31,6 +31,8 @@ class ApiHandler:
             params["format"] = format
         if nrows:
             params["nrows"] = nrows
+        if request_type:
+            params["request_type"] = request_type
 
         response = requests.get(url, params=params)
 
@@ -58,9 +60,12 @@ class ApiHandler:
         else:
             raise Exception(f"Failed to analyze: {response.status_code}")
 
-    def generate_preview(self):
+    def generate_preview(self, preview_type: str = None):
+        params = {"preview_type": preview_type}
+
         url = f"{self.base_url}/preview"
-        response = requests.get(url)
+        response = requests.get(url, params=params) if params else requests.get(url)
+
         if response.status_code == 200:
             return response.json()["data"]
         else:

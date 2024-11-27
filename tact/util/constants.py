@@ -18,6 +18,7 @@ XML_CONFIG_PATH = (
 XML_LIB_PATH = (
     "tact/config/generateDatasetsXmlLib.JSON"
 )
+WORMS_LOOKUP_PATH = "tact/resources/worms_lut.csv"
 LOG_FILE_PATH = "tact/logs/tact.log"
 LOG_LEVELS = ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]
 DEFAULT_LOG_LEVEL = "INFO"

@@ -12,14 +12,7 @@ api_handle = st.session_state.api_handle
 parser_config = api_handle.get_config(config_type="parser")
 transform_config = api_handle.get_config(config_type="transform")
 
-st.markdown(
-    """
-#
-Operations for Transforming a Dataset
----
-"""
-)
-
+st.header("Operations for Transforming a Dataset", divider="rainbow")
 
 input = st.text_input(
     label="Input File Path:", value=parser_config.get("outputFilePath")

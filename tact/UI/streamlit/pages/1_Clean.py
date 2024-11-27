@@ -165,14 +165,7 @@ st.set_page_config(layout="wide", page_title="TACT: Clean", page_icon=":broom:")
 
 api_handle = st.session_state.api_handle
 
-st.markdown(
-    """
-#
-Operations for Cleaning Input Data
----
-"""
-)
-
+st.header("Operations for Cleaning Input Data", divider="rainbow")
 
 # df will be null if inputPath is a directory
 data_dict = api_handle.get_data(nrows=10)

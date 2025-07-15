@@ -73,6 +73,30 @@ def enumerate_row(
 
     return enumerated_row
 
+def pivot(
+    input_data: pd. DataFrame,
+    pivoted_column: str,
+    value_column: str
+    ) -> pd.DataFrame:
+    """
+    A simpler approach than enumerate_rows, take column, extracts all values in that columns into new columns, and populates
+    those columns with the values specified by value_column
+    :param input_data: Dataframe being pivoted
+    :param pivoted_column: The label for the column which will have its values extracted and turned into other columns
+    :param value_column: The values which wil be mapped to the newly created columns
+    :return: Pivoted Dataframe (hopefully)
+    """
+
+    try:
+        pivoted = input_data.pivot(
+            index=[col for col in input_data.columns if col not in [pivoted_column, value_column]],
+            columns=pivoted_column,
+            values=value_column,
+        )
+    except Exception as e:
+        pass
+
+    return pivoted.reset_index()
 
 def process(
     target_data_columns: list,
@@ -123,5 +147,5 @@ def process(
 
     # now convert the list of dicts into a dataframe
     output_frame = pd.DataFrame.from_dict(enumerated_rows)
-
+    
     return output_frame

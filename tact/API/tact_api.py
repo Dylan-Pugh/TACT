@@ -100,6 +100,11 @@ def transform():
             return make_response(("Dataset flipped successfully.", 200))
         else:
             return make_response(("Failed to flip dataset.", 404))
+    elif operation == "pivot_columns":
+        if controller.pivot_dataset():
+            return make_response(("Dataset pivoted successfully.", 200))
+        else:
+            return make_response(("Failed to pivot dataset.", 404))
     elif operation == "combine_rows":
         if controller.combine_rows():
             return make_response(("Rows combined successfully.", 200))

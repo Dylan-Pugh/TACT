@@ -2,7 +2,7 @@ import streamlit as st
 
 # placeholder for transform functionality:
 # 1. Dataset flipper
-# 2. Dataset concat/append w/differnt columns & regex matching
+# 2. Dataset concat/append w/different columns & regex matching
 
 ############################ Main App ############################
 st.set_page_config(layout="wide", page_title="TACT: Transform", page_icon=":dolphin:")
@@ -34,19 +34,54 @@ if data_dict:
         st.table(data=data_dict)
 
 st.markdown(
-    """
+   body = """
 ##
-Row Enumeration (flipping)
+Row Enumeration Or Pivoting (flipping)
 ---
-Extract data in the target columns into discrete records (rows). Data in other columns will remain unchanged. You may also define constant values which will be added to every extracted row.
+Extract data in the target columns into discrete records (rows) OR
+Create new columns from values, and map to another set of values (pivot table)
+
+Data in other columns will remain unchanged. You may also define constant values which will be added to every extracted row.
 """
 )
 # Allow users to select input columns & constants
+
+mode_options = {
+    "enumerate": "Enumerate (flip columns into rows)",
+    "pivot": "Pivot (extract values in one column to create new columns)"
+}
+
+mode = st.radio(
+    "Choose transformation mode:",
+    options=list(mode_options.keys()),
+    format_func=lambda k: mode_options[k],
+    help=":information_source: Please select EITHER enumerate (multi-column) OR pivot (column/value) mode.",
+    key="transform_mode"
+)
+
+
 target_data_columns = st.multiselect(
     label="Select target columns:",
     options=list(data_dict.keys()),
     default=list(data_dict.keys()),
+    disabled=(mode != "enumerate"),
+    key="target_data_columns"
 )
+
+
+col1, col2 = st.columns(2)
+with col1:
+    pivot_column = st.selectbox(
+        label="Column to flip/pivot (values become new columns):",
+        options=list(data_dict.keys()),
+        disabled=(mode != "pivot")
+    )
+with col2:
+    pivot_value_column = st.selectbox(
+        label="Value column (values fill new columns):",
+        options=[col for col in data_dict.keys() if col != st.session_state.get("flip_pivot_column_select")],
+        disabled=(mode != "pivot")
+    )
 
 # We initialize the constants table here so that editing is enabled by default
 # Compensating for weird Streamlit behavior
@@ -59,29 +94,35 @@ with st.expander(label="Define constants (optional)", expanded=True):
         num_rows="dynamic",
     )
 
-
 drop_units = st.checkbox(
     label="Drop first row (units)", value=transform_config.get("drop_units")
 )
+
 drop_empty_records = st.checkbox(
     label="Drop records with a value of 0 or less in target columns",
     value=transform_config.get("drop_empty_records"),
 )
-split_fields = st.checkbox(
-    label="Split input column into multiple columns",
-    value=transform_config.get("split_fields"),
-)
-set_occurrence_status = st.checkbox(
-    label="Set occurrence status (present/absent) for each record",
-    value=transform_config.get("set_occurrence_status"),
-)
+
 gen_UUID = st.checkbox(
     label="Generate UUID for each record",
     value=transform_config.get("gen_UUID"),
 )
 
+split_fields = st.checkbox(
+    label="Split input column into multiple columns",
+    value=transform_config.get("split_fields"),
+    disabled=(mode != "enumerate"),
+)
+
+set_occurrence_status = st.checkbox(
+    label="Set occurrence status (present/absent) for each record",
+    value=transform_config.get("set_occurrence_status"),
+    disabled=(mode != "enumerate"),
+)
+
 results_column = st.text_input(
-    label="Column name for results:", value=transform_config.get("results_column")
+    label="Column name for results:", value=transform_config.get("results_column"),
+    disabled=(mode != "enumerate"),
 )
 
 transform_output_path = st.text_input(
@@ -93,6 +134,8 @@ if st.button(label="Flip It!"):
         # Write settings
         outgoing_config = {
             "target_data_columns": target_data_columns,
+            "pivot_column": pivot_column,
+            "pivot_value_column": pivot_value_column,
             "results_column": results_column,
             "transform_output_path": transform_output_path,
             "drop_units": drop_units,
@@ -115,6 +158,8 @@ if st.button(label="Flip It!"):
             st.balloons()
         else:
             st.error("Failed to flip dataset.")
+
+
 
 st.markdown(
     """

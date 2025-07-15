@@ -2,7 +2,6 @@ import argparse
 import errno
 import json
 import os
-import re
 import pandas as pd
 from typing import Any, Dict, Union
 
@@ -357,44 +356,47 @@ def flip_dataset():
 
     parser_config = get_settings_json("parser")
 
-    # create list of possible time fields
-    time_fields = [
-        parser_config.get("parsedColumnName"),
-        parser_config.get("timeField").get("time"),
-    ]
-
-    # create regular expression that matches "Date" and "time" regardless of capitalization
-    regex = re.compile(r"(?i)date|time")
-
-    # find first time field that exists in flipped_df or matches the regular expression
-    for time_field in time_fields:
-        if time_field in flipped_df.columns:
-            sort_by_column = time_field
-            break
-        elif regex.search(time_field):
-            match = regex.search(time_field).group(0)
-            sort_by_column = next(
-                (col for col in flipped_df.columns if match.lower() in col.lower()),
-                None,
-            )
-            if sort_by_column:
-                break
-    else:
-        # if no time field is found, raise an exception
-        raise ValueError("No valid time field found in flipped_df")
-
-    # sort by parsed time and flipped column name, ascending
-    flipped_df.sort_values(
-        by=[
-            sort_by_column,
-            transform_config.get("results_column"),
-        ],
-        ascending=True,
-        inplace=True,
-    )
-
     csv_utils.write_out_data_frame(
         flipped_df,
+        transform_config.get("transform_output_path"),
+        parser_config["inputFileEncoding"],
+    )
+
+    return True
+
+
+def pivot_dataset():
+    transform_config = get_settings_json("transform")
+
+    logger.info("Pivoting dataset...")
+    logger.debug(
+        "Pivot args: pivot_column: {}".format(
+            transform_config.get("pivot_column")
+        )
+    )
+    logger.debug(
+        "Pivot args: value_column: {}".format(
+            transform_config.get("pivot_value_column")
+        )
+    )
+    logger.debug(
+        "Pivot args: transform_output_path: {}".format(
+            transform_config.get("transform_output_path")
+        )
+    )
+
+    df = get_data(kwargs={"format": "dataframe"})
+
+    pivoted_df = flipper.pivot(
+        input_data=df,
+        pivoted_column=transform_config.get("pivot_column"),
+        value_column=transform_config.get("pivot_value_column"),
+    )
+
+    parser_config = get_settings_json("parser")
+
+    csv_utils.write_out_data_frame(
+        pivoted_df,
         transform_config.get("transform_output_path"),
         parser_config["inputFileEncoding"],
     )
@@ -407,11 +409,11 @@ def combine_rows():
 
     logger.info("Combining rows...")
 
-    df = get_data(kwargs={"format": "df"})
+    df = get_data(kwargs={"format": "dataframe"})
 
     results_df = csv_utils.combine_rows(
         df,
-        transform_config.get("columns_to_match"),
+        transform_config.get("match_columns"),
         transform_config.get("append_prefix"),
     )
 

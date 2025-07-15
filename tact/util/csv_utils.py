@@ -1,5 +1,6 @@
 import os
 import glob
+import re
 import pandas as pd
 
 
@@ -116,6 +117,41 @@ def merge_grouped_rows(group_df, append_prefix):
             continue
 
     return pd.DataFrame.from_dict(output_rows)
+
+
+def sort_by_time(input_frame: pd.DataFrame, time_fields: list[str] = None) -> pd.DataFrame:
+
+    # create regular expression that matches "Date" and "time" regardless of capitalization
+    regex = re.compile(r"(?i)date|time")
+
+    # find first time field that exists in flipped_df or matches the regular expression
+    for time_field in time_fields:
+        if time_field in input_frame.columns:
+            sort_by_column = time_field
+            break
+        elif regex.search(time_field):
+            match = regex.search(time_field).group(0)
+            sort_by_column = next(
+                (col for col in input_frame.columns if match.lower() in col.lower()),
+                None,
+            )
+            if sort_by_column:
+                break
+        else:
+            # if no time field is found, raise an exception
+            raise ValueError("No valid time field found in flipped_df")
+
+    #sort by parsed time and flipped column name, ascending
+    input_frame.sort_values(
+        by=[
+            sort_by_column,
+            input_frame.get("results_column"),
+        ],
+        ascending=True,
+        inplace=True,
+    )
+
+    return input_frame
 
 
 def combine_rows(input_frame: pd.DataFrame, match_columns: list, append_prefix="ADDED_"):

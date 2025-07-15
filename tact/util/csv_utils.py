@@ -118,19 +118,19 @@ def merge_grouped_rows(group_df, append_prefix):
     return pd.DataFrame.from_dict(output_rows)
 
 
-def combine_rows(input_frame, columns_to_match: list, append_prefix="ADDED_"):
+def combine_rows(input_frame: pd.DataFrame, match_columns: list, append_prefix="ADDED_"):
     """
     Combines rows in a given dataframe based on provided match criteria.
     The new row will have one copy of all duplicate values, and new columns for each unique value.
     There's probably an 'easier' or more effcient way to do this using a fancy Pandas function, but Pandas is also extremely opaque and I'm too dumb to figure it out.
     I'll buy you a beer if you improve this function.
     :param input_frame: Dataframe object
-    :param columns_to_match: Columns used to determine whether a row 'matches' another
+    :param match_columns: Columns used to determine whether a row 'matches' another
     :param append_prefix: String to append to added column names
     :return: New dataframe with combined rows
     """
 
-    grouped = input_frame.groupby(columns_to_match)
+    grouped = input_frame.groupby(match_columns)
     new_df = grouped.apply(merge_grouped_rows, append_prefix)
 
     return new_df

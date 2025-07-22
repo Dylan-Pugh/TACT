@@ -54,6 +54,42 @@ def replace_char_in_headers(input_frame, char_to_replace, replacement_char):
     ).str.replace(char_to_replace, replacement_char)
 
 
+def append_row_header(input_frame: pd.DataFrame, row_index: int = 0, drop_row: bool = False):
+    """
+    For input DataFrame, take the specified row and append its values to the column names.
+
+    Args:
+        input_frame (pd.DataFrame): The DataFrame to modify.
+        row_index (int): The index of the row whose values will be appended to the column names. Default is 0 (first row).
+    """
+    if input_frame.empty or input_frame.shape[0] <= row_index:
+        return input_frame
+
+    modified_columns = []
+    for current_column in input_frame.columns.drop_duplicates():
+        to_process = []
+
+        col_value = input_frame.at[row_index, current_column]
+        
+        if isinstance(col_value, pd.Series):
+            to_process.extend(col_value.values.tolist())
+        else:
+            to_process.append(col_value)
+        
+        for new_value in to_process:
+            if pd.notnull(new_value) and str(new_value) != '':
+                appended_name = f"{current_column}_{str(new_value).strip()}"
+                modified_columns.append(appended_name)
+            else:
+                modified_columns.append(current_column)
+  
+    input_frame.columns = modified_columns
+
+    if drop_row:
+        input_frame.drop(input_frame.index[row_index], inplace=True)
+        #input_frame.reset_index(drop=True, inplace=True)
+
+
 def replace_in_rows(
     input_frame, value_to_replace, replacement_value, target_columns=None
 ):

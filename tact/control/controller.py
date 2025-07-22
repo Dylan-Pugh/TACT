@@ -201,6 +201,7 @@ def process():
                     config["dropDuplicates"]
                     or config["dropEmpty"]
                     or config["normalizeHeaders"]
+                    or config["appendHeaders"]
                     or config["replaceValues"]
                     or config["deleteColumns"]
                 ):
@@ -243,6 +244,13 @@ def process():
                                 current_replacement_pair.get("original"),
                                 current_replacement_pair.get("replacement"),
                             )
+                    if config["appendHeaders"]:
+                        logger.info("Appending row values to column headers")
+                        csv_utils.append_row_header(
+                            input_frame=input_frame,
+                            row_index=config["rowForColumnAppend"],
+                            drop_row=config["dropAppendedRow"]
+                        )
                     if config["replaceValues"]:
                         logger.info("Replacing values in rows")
                         for current_replacement_pair in config["rowValuesToReplace"]:

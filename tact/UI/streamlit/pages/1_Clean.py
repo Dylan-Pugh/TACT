@@ -49,6 +49,16 @@ def display_analysis(config, api_handle):
                 label="Normalize Headers",
                 value=config["normalizeHeaders"],
             )
+            appendHeaders = st.checkbox(
+                key="appendHeaders",
+                label="Append Row Value to Headers",
+                value=config["appendHeaders"],
+            )
+            dropAppendedRow = st.checkbox(
+                key="dropAppendedRow",
+                label="Drop Appended Row ^",
+                value=config["dropAppendedRow"],
+            )
             replaceValues = st.checkbox(
                 key="replaceValues",
                 label="Replace Row Values",
@@ -116,6 +126,13 @@ def display_analysis(config, api_handle):
         ]
 
         with col9:
+            rowForColumnAppend = st.number_input(
+                key="rowForColumnAppend",
+                label="Row to append to Column Headers",
+                min_value=0,
+                max_value=len(config["fieldNames"]),
+            )
+
             columnsForReplace = st.multiselect(
                 key="columnsForReplace",
                 label="Target Columns for Row Replacement (blank will target all columns)",

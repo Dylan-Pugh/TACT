@@ -1,3 +1,4 @@
+import re
 import streamlit as st
 
 # placeholder for transform functionality:
@@ -47,8 +48,8 @@ Data in other columns will remain unchanged. You may also define constant values
 # Allow users to select input columns & constants
 
 mode_options = {
-    "enumerate": "Enumerate (flip columns into rows)",
-    "pivot": "Pivot (extract values in one column to create new columns)"
+    "enumerate_columns": "Enumerate (flip columns into rows)",
+    "pivot_columns": "Pivot (extract values in one column to create new columns)"
 }
 
 mode = st.radio(
@@ -64,7 +65,7 @@ target_data_columns = st.multiselect(
     label="Select target columns:",
     options=list(data_dict.keys()),
     default=list(data_dict.keys()),
-    disabled=(mode != "enumerate"),
+    disabled=(mode != "enumerate_columns"),
     key="target_data_columns"
 )
 
@@ -74,13 +75,13 @@ with col1:
     pivot_column = st.selectbox(
         label="Column to flip/pivot (values become new columns):",
         options=list(data_dict.keys()),
-        disabled=(mode != "pivot")
+        disabled=(mode != "pivot_columns")
     )
 with col2:
     pivot_value_column = st.selectbox(
         label="Value column (values fill new columns):",
         options=[col for col in data_dict.keys() if col != st.session_state.get("flip_pivot_column_select")],
-        disabled=(mode != "pivot")
+        disabled=(mode != "pivot_columns")
     )
 
 # We initialize the constants table here so that editing is enabled by default
@@ -111,18 +112,18 @@ gen_UUID = st.checkbox(
 split_fields = st.checkbox(
     label="Split input column into multiple columns",
     value=transform_config.get("split_fields"),
-    disabled=(mode != "enumerate"),
+    disabled=(mode != "enumerate_columns"),
 )
 
 set_occurrence_status = st.checkbox(
     label="Set occurrence status (present/absent) for each record",
     value=transform_config.get("set_occurrence_status"),
-    disabled=(mode != "enumerate"),
+    disabled=(mode != "enumerate_columns"),
 )
 
 results_column = st.text_input(
     label="Column name for results:", value=transform_config.get("results_column"),
-    disabled=(mode != "enumerate"),
+    disabled=(mode != "enumerate_columns"),
 )
 
 transform_output_path = st.text_input(
@@ -153,7 +154,7 @@ if st.button(label="Flip It!"):
         else:
             st.error(body="Failed to update config.")
 
-        if api_handle.transform(operation="enumerate_columns"):
+        if api_handle.transform(operation=mode):
             st.success("Success - dataset flipped")
             st.balloons()
         else:
@@ -172,9 +173,27 @@ st.markdown(
 
 # Allow users to select match columns
 match_columns = st.multiselect(
-    label="Select columns for match:", options=parser_config.get("fieldNames")
+    label="Select columns for match:", options=list(data_dict.keys()),
 )
+
 append_prefix = st.text_input(label="Prefix for added columns:")
+
+regex_pattern = st.text_input(
+    label="Optional: Regex pattern for grouping (applies to match columns)",
+    placeholder="e.g. ^[^_]+ for date before first underscore",
+    key="combine_rows_regex_pattern"
+)
+regex_valid = True
+regex_error = ""
+if regex_pattern:
+    try:
+        re.compile(regex_pattern)
+    except re.error as e:
+        regex_valid = False
+        regex_error = str(e)
+if not regex_valid:
+    st.error(f"Invalid regex: {regex_error}")
+
 combine_output_path = st.text_input(
     key="row_combine_output", label="Output path:", placeholder="path/to/output.csv"
 )
@@ -187,6 +206,8 @@ if st.button(label="Combine Rows!"):
             "append_prefix": append_prefix,
             "combine_output_path": combine_output_path,
         }
+        if regex_pattern and regex_valid:
+            outgoing_config["match_pattern"] = regex_pattern
 
         if api_handle.update_config(
             config_type="transform", config_to_apply=outgoing_config

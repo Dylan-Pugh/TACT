@@ -423,6 +423,7 @@ def combine_rows():
         df,
         transform_config.get("match_columns"),
         transform_config.get("append_prefix"),
+        transform_config.get("match_pattern"),
     )
 
     logger.info(

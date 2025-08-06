@@ -99,8 +99,12 @@ drop_units = st.checkbox(
     label="Drop first row (units)", value=transform_config.get("drop_units")
 )
 
+columns_from_units = st.checkbox(
+    label="Create new columns from units", value=transform_config.get("columns_from_units")
+)
+
 drop_empty_records = st.checkbox(
-    label="Drop records with a value of 0 or less in target columns",
+    label="Drop records with a value of NaN or <= 0 in target columns",
     value=transform_config.get("drop_empty_records"),
 )
 
@@ -120,6 +124,33 @@ set_occurrence_status = st.checkbox(
     value=transform_config.get("set_occurrence_status"),
     disabled=(mode != "enumerate_columns"),
 )
+
+match_col_variants = st.checkbox(
+    label="Match column variants",
+    value=transform_config.get("match_col_variants"),
+    help="If true values from similar columns will be added to enumerated rows, and assigned the units specified below."
+)
+
+if match_col_variants:
+    with st.expander(label="Matched column preview", expanded=True):
+        match_preview = {}
+        for col in target_data_columns:
+            match_preview[col] = [s for s in list(data_dict.keys()) if s != col and col in s]
+        st.table(match_preview)
+
+col3, col4 = st.columns(2)
+with col3:
+    primary_units = st.text_input(
+        label="Units to apply to values from target column",
+        value=transform_config.get("primary_units"),
+        disabled=False
+    )
+with col4:
+    alt_units = st.text_input(
+        label="Units to apply to values from column variants",
+        value=transform_config.get("alt_units"),
+        disabled=False if match_col_variants else True
+    )
 
 results_column = st.text_input(
     label="Column name for results:", value=transform_config.get("results_column"),
@@ -143,6 +174,9 @@ if st.button(label="Flip It!"):
             "drop_empty_records": drop_empty_records,
             "split_fields": split_fields,
             "set_occurrence_status": set_occurrence_status,
+            "match_col_variants": match_col_variants,
+            "primary_units": primary_units,
+            "alt_units": alt_units,
             "gen_UUID": gen_UUID,
             "constants": constants,
         }

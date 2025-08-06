@@ -190,7 +190,7 @@ def sort_by_time(input_frame: pd.DataFrame, time_fields: list[str] = None) -> pd
     return input_frame
 
 
-def combine_rows(input_frame: pd.DataFrame, match_columns: list, append_prefix="ADDED_"):
+def combine_rows(input_frame: pd.DataFrame, match_columns: list, append_prefix="ADDED_", match_pattern: str = None):
     """
     Combines rows in a given dataframe based on provided match criteria.
     The new row will have one copy of all duplicate values, and new columns for each unique value.
@@ -202,7 +202,18 @@ def combine_rows(input_frame: pd.DataFrame, match_columns: list, append_prefix="
     :return: New dataframe with combined rows
     """
 
-    grouped = input_frame.groupby(match_columns)
+    print(f"Match pattern: {match_pattern}")
+
+    if match_pattern:
+        # cannot correctly unpack list of cols ,but single col works
+        # grouped = input_frame.groupby(by=input_frame[match_columns].apply(lambda x: re.sub(match_pattern, '', str(x))))
+        #grouped = input_frame.groupby(by=input_frame['time'].apply(lambda x: re.sub(match_pattern, '', str(x))))
+        grouped = input_frame.groupby(by=input_frame[[match_columns]].apply(lambda x: re.sub(match_pattern, '', str(x))))
+    else:
+        grouped = input_frame.groupby(match_columns)
+    
+    print("Number of groups:", len(grouped))
+    print("Groups:", list(grouped.groups.keys()))
     new_df = grouped.apply(merge_grouped_rows, append_prefix)
 
     return new_df

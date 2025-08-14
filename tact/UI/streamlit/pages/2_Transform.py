@@ -152,6 +152,48 @@ with col4:
         disabled=False if match_col_variants else True
     )
 
+if split_fields:
+    found_delimiters = set([char for string in target_data_columns for char in re.findall(r'[\W_]', string)])
+    with st.expander(label="Column split settings", expanded=True):
+        col5, col6 = st.columns(2)
+        with col5:
+            split_method = st.selectbox(
+                label="Select split method",
+                options=["Delimiter", "Regex"],
+                )
+        with col6:
+            if split_method == "Delimiter":
+                delimiter = st.selectbox(
+                    label="Select delimiter",
+                    options=found_delimiters,
+                    )
+            else:
+                delimiter = st.text_input(
+                    label="Define regex to split column name"
+                )
+                if delimiter:
+                    try:
+                        re.compile(delimiter)
+                        st.success("Valid regex")
+                    except re.error as e:
+                        st.error(f"Invalid regex: {str(e)}")
+        
+        if delimiter:
+            split_column_preview = {string: re.split(delimiter, string) for string in target_data_columns}
+            st.dataframe(
+                data=split_column_preview,
+                hide_index=False,
+                column_config={0:"Original Value", 1: "Extracted Value", 2: "Extracted Value"}
+                )
+            
+            split_column_name = st.text_input(
+                label="Column name for extracted values",
+                help="Label for new column, values will be the extracted values from original column."
+            )
+else:
+    delimiter = None
+    split_column_name = None
+
 results_column = st.text_input(
     label="Column name for results:", value=transform_config.get("results_column"),
     disabled=(mode != "enumerate_columns"),
@@ -173,6 +215,8 @@ if st.button(label="Flip It!"):
             "drop_units": drop_units,
             "drop_empty_records": drop_empty_records,
             "split_fields": split_fields,
+            "delimiter": delimiter,
+            "split_column_name": split_column_name,
             "set_occurrence_status": set_occurrence_status,
             "match_col_variants": match_col_variants,
             "primary_units": primary_units,
@@ -217,16 +261,12 @@ regex_pattern = st.text_input(
     placeholder="e.g. ^[^_]+ for date before first underscore",
     key="combine_rows_regex_pattern"
 )
-regex_valid = True
-regex_error = ""
+
 if regex_pattern:
     try:
         re.compile(regex_pattern)
     except re.error as e:
-        regex_valid = False
-        regex_error = str(e)
-if not regex_valid:
-    st.error(f"Invalid regex: {regex_error}")
+        st.error(f"Invalid regex: {str(e)}")
 
 combine_output_path = st.text_input(
     key="row_combine_output", label="Output path:", placeholder="path/to/output.csv"
@@ -240,7 +280,7 @@ if st.button(label="Combine Rows!"):
             "append_prefix": append_prefix,
             "combine_output_path": combine_output_path,
         }
-        if regex_pattern and regex_valid:
+        if regex_pattern:
             outgoing_config["match_pattern"] = regex_pattern
 
         if api_handle.update_config(

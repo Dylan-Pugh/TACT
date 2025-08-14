@@ -11,6 +11,8 @@ def enumerate_row(
     field,
     results_column: str,
     split_fields: bool,
+    delimiter: str,
+    split_column_name: str,
     match_col_variants: bool,
     primary_units: str,
     alt_units: str,
@@ -27,30 +29,39 @@ def enumerate_row(
 
     # determine whether we should derive additional fields from the input column header
     if split_fields:
-        split_species = field.rsplit("_", 1)
-        scientific_name = split_species[0].replace("_", " ")
+        extracted_vals = re.split(delimiter, field)
 
-        if len(split_species) > 1 and field.rsplit("_", 1)[1]:
-            life_stage = field.rsplit("_", 1)[1]
+        enumerated_row[results_column] = extracted_vals[0]
 
-            if life_stage == "N":
-                life_stage = "Nauplius"
-
-            enumerated_row["lifeStage"] = (
-                life_stage if life_stage != "F" and life_stage != "M" else "adult"
-            )
-
-            if life_stage == "F":
-                enumerated_row["sex"] = "female"
-            elif life_stage == "M":
-                enumerated_row["sex"] = "male"
-            else:
-                enumerated_row["sex"] = "NA"
+        if len(extracted_vals) > 1:
+            enumerated_row[split_column_name] = extracted_vals[1]
         else:
-            enumerated_row["lifeStage"] = "NA"
-            enumerated_row["sex"] = "NA"
+            enumerated_row[split_column_name] = None
 
-        enumerated_row[results_column] = scientific_name
+        # split_species = field.rsplit("_", 1)
+        # scientific_name = split_species[0].replace("_", " ")
+
+        # if len(split_species) > 1 and field.rsplit("_", 1)[1]:
+        #     life_stage = field.rsplit("_", 1)[1]
+
+        #     if life_stage == "N":
+        #         life_stage = "Nauplius"
+
+        #     enumerated_row["lifeStage"] = (
+        #         life_stage if life_stage != "F" and life_stage != "M" else "adult"
+        #     )
+
+        #     if life_stage == "F":
+        #         enumerated_row["sex"] = "female"
+        #     elif life_stage == "M":
+        #         enumerated_row["sex"] = "male"
+        #     else:
+        #         enumerated_row["sex"] = "NA"
+        # else:
+        #     enumerated_row["lifeStage"] = "NA"
+        #     enumerated_row["sex"] = "NA"
+
+        # enumerated_row[results_column] = scientific_name
     else:
         enumerated_row[results_column] = field
 
@@ -66,7 +77,6 @@ def enumerate_row(
             for col in matched_cols:
                 if col != field:
                     enumerated_row[alt_units] = row_data[col]
-                    # pop col out of enumerated row
 
     # add count of specified species as a new column
     if primary_units:
@@ -126,6 +136,8 @@ def process(
     drop_units,
     drop_empty_records,
     split_fields: bool,
+    delimiter: str,
+    split_column_name: str,
     match_col_variants: bool,
     primary_units: str,
     alt_units: str,
@@ -170,6 +182,8 @@ def process(
                     field,
                     results_column,
                     split_fields,
+                    delimiter,
+                    split_column_name,
                     match_col_variants,
                     primary_units,
                     alt_units,

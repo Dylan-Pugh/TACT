@@ -94,7 +94,7 @@ st.markdown(
 ##
 Taxonomic Name Matching
 ---
-Extract data in the target columns into discrete records (rows). Data in other columns will remain unchanged. You may also define constant values which will be added to every extracted row.
+Match selected column in input data against taxonomic information from WORMS; approve and merge changes into source data.
 """
 )
 # Allow users to select input columns & constants

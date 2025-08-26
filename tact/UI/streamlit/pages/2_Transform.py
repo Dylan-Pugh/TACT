@@ -1,8 +1,9 @@
+import re
 import streamlit as st
 
 # placeholder for transform functionality:
 # 1. Dataset flipper
-# 2. Dataset concat/append w/differnt columns & regex matching
+# 2. Dataset concat/append w/different columns & regex matching
 
 ############################ Main App ############################
 st.set_page_config(layout="wide", page_title="TACT: Transform", page_icon=":dolphin:")
@@ -34,19 +35,54 @@ if data_dict:
         st.table(data=data_dict)
 
 st.markdown(
-    """
+   body = """
 ##
-Row Enumeration (flipping)
+Row Enumeration Or Pivoting (flipping)
 ---
-Extract data in the target columns into discrete records (rows). Data in other columns will remain unchanged. You may also define constant values which will be added to every extracted row.
+Extract data in the target columns into discrete records (rows) OR
+Create new columns from values, and map to another set of values (pivot table)
+
+Data in other columns will remain unchanged. You may also define constant values which will be added to every extracted row.
 """
 )
 # Allow users to select input columns & constants
+
+mode_options = {
+    "enumerate_columns": "Enumerate (flip columns into rows)",
+    "pivot_columns": "Pivot (extract values in one column to create new columns)"
+}
+
+mode = st.radio(
+    "Choose transformation mode:",
+    options=list(mode_options.keys()),
+    format_func=lambda k: mode_options[k],
+    help=":information_source: Please select EITHER enumerate (multi-column) OR pivot (column/value) mode.",
+    key="transform_mode"
+)
+
+
 target_data_columns = st.multiselect(
     label="Select target columns:",
     options=list(data_dict.keys()),
     default=list(data_dict.keys()),
+    disabled=(mode != "enumerate_columns"),
+    key="target_data_columns"
 )
+
+
+col1, col2 = st.columns(2)
+with col1:
+    pivot_column = st.selectbox(
+        label="Column to flip/pivot (values become new columns):",
+        options=list(data_dict.keys()),
+        disabled=(mode != "pivot_columns")
+    )
+with col2:
+    pivot_value_column = st.selectbox(
+        label="Value column (values fill new columns):",
+        options=[col for col in data_dict.keys() if col != st.session_state.get("flip_pivot_column_select")],
+        disabled=(mode != "pivot_columns")
+    )
 
 # We initialize the constants table here so that editing is enabled by default
 # Compensating for weird Streamlit behavior
@@ -59,29 +95,108 @@ with st.expander(label="Define constants (optional)", expanded=True):
         num_rows="dynamic",
     )
 
-
 drop_units = st.checkbox(
     label="Drop first row (units)", value=transform_config.get("drop_units")
 )
+
+columns_from_units = st.checkbox(
+    label="Create new columns from units", value=transform_config.get("columns_from_units")
+)
+
 drop_empty_records = st.checkbox(
-    label="Drop records with a value of 0 or less in target columns",
+    label="Drop records with a value of NaN or <= 0 in target columns",
     value=transform_config.get("drop_empty_records"),
 )
-split_fields = st.checkbox(
-    label="Split input column into multiple columns",
-    value=transform_config.get("split_fields"),
-)
-set_occurrence_status = st.checkbox(
-    label="Set occurrence status (present/absent) for each record",
-    value=transform_config.get("set_occurrence_status"),
-)
+
 gen_UUID = st.checkbox(
     label="Generate UUID for each record",
     value=transform_config.get("gen_UUID"),
 )
 
+split_fields = st.checkbox(
+    label="Split input column into multiple columns",
+    value=transform_config.get("split_fields"),
+    disabled=(mode != "enumerate_columns"),
+)
+
+set_occurrence_status = st.checkbox(
+    label="Set occurrence status (present/absent) for each record",
+    value=transform_config.get("set_occurrence_status"),
+    disabled=(mode != "enumerate_columns"),
+)
+
+match_col_variants = st.checkbox(
+    label="Match column variants",
+    value=transform_config.get("match_col_variants"),
+    help="If true values from similar columns will be added to enumerated rows, and assigned the units specified below."
+)
+
+if match_col_variants:
+    with st.expander(label="Matched column preview", expanded=True):
+        match_preview = {}
+        for col in target_data_columns:
+            match_preview[col] = [s for s in list(data_dict.keys()) if s != col and col in s]
+        st.table(match_preview)
+
+col3, col4 = st.columns(2)
+with col3:
+    primary_units = st.text_input(
+        label="Units to apply to values from target column",
+        value=transform_config.get("primary_units"),
+        disabled=False
+    )
+with col4:
+    alt_units = st.text_input(
+        label="Units to apply to values from column variants",
+        value=transform_config.get("alt_units"),
+        disabled=False if match_col_variants else True
+    )
+
+if split_fields:
+    found_delimiters = set([char for string in target_data_columns for char in re.findall(r'[\W_]', string)])
+    with st.expander(label="Column split settings", expanded=True):
+        col5, col6 = st.columns(2)
+        with col5:
+            split_method = st.selectbox(
+                label="Select split method",
+                options=["Delimiter", "Regex"],
+                )
+        with col6:
+            if split_method == "Delimiter":
+                delimiter = st.selectbox(
+                    label="Select delimiter",
+                    options=found_delimiters,
+                    )
+            else:
+                delimiter = st.text_input(
+                    label="Define regex to split column name"
+                )
+                if delimiter:
+                    try:
+                        re.compile(delimiter)
+                        st.success("Valid regex")
+                    except re.error as e:
+                        st.error(f"Invalid regex: {str(e)}")
+        
+        if delimiter:
+            split_column_preview = {string: re.split(delimiter, string) for string in target_data_columns}
+            st.dataframe(
+                data=split_column_preview,
+                hide_index=False,
+                column_config={0:"Original Value", 1: "Extracted Value", 2: "Extracted Value"}
+                )
+            
+            split_column_name = st.text_input(
+                label="Column name for extracted values",
+                help="Label for new column, values will be the extracted values from original column."
+            )
+else:
+    delimiter = None
+    split_column_name = None
+
 results_column = st.text_input(
-    label="Column name for results:", value=transform_config.get("results_column")
+    label="Column name for results:", value=transform_config.get("results_column"),
+    disabled=(mode != "enumerate_columns"),
 )
 
 transform_output_path = st.text_input(
@@ -93,12 +208,19 @@ if st.button(label="Flip It!"):
         # Write settings
         outgoing_config = {
             "target_data_columns": target_data_columns,
+            "pivot_column": pivot_column,
+            "pivot_value_column": pivot_value_column,
             "results_column": results_column,
             "transform_output_path": transform_output_path,
             "drop_units": drop_units,
             "drop_empty_records": drop_empty_records,
             "split_fields": split_fields,
+            "delimiter": delimiter,
+            "split_column_name": split_column_name,
             "set_occurrence_status": set_occurrence_status,
+            "match_col_variants": match_col_variants,
+            "primary_units": primary_units,
+            "alt_units": alt_units,
             "gen_UUID": gen_UUID,
             "constants": constants,
         }
@@ -110,11 +232,13 @@ if st.button(label="Flip It!"):
         else:
             st.error(body="Failed to update config.")
 
-        if api_handle.transform(operation="enumerate_columns"):
+        if api_handle.transform(operation=mode):
             st.success("Success - dataset flipped")
             st.balloons()
         else:
             st.error("Failed to flip dataset.")
+
+
 
 st.markdown(
     """
@@ -127,9 +251,23 @@ st.markdown(
 
 # Allow users to select match columns
 match_columns = st.multiselect(
-    label="Select columns for match:", options=parser_config.get("fieldNames")
+    label="Select columns for match:", options=list(data_dict.keys()),
 )
+
 append_prefix = st.text_input(label="Prefix for added columns:")
+
+regex_pattern = st.text_input(
+    label="Optional: Regex pattern for grouping (applies to match columns)",
+    placeholder="e.g. ^[^_]+ for date before first underscore",
+    key="combine_rows_regex_pattern"
+)
+
+if regex_pattern:
+    try:
+        re.compile(regex_pattern)
+    except re.error as e:
+        st.error(f"Invalid regex: {str(e)}")
+
 combine_output_path = st.text_input(
     key="row_combine_output", label="Output path:", placeholder="path/to/output.csv"
 )
@@ -142,6 +280,8 @@ if st.button(label="Combine Rows!"):
             "append_prefix": append_prefix,
             "combine_output_path": combine_output_path,
         }
+        if regex_pattern:
+            outgoing_config["match_pattern"] = regex_pattern
 
         if api_handle.update_config(
             config_type="transform", config_to_apply=outgoing_config

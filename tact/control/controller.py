@@ -2,9 +2,9 @@ import argparse
 import errno
 import json
 import os
-import re
 import pandas as pd
 from typing import Any, Dict, Union
+from pathlib import Path
 
 import tact.processing.analyzer as analyzer
 import tact.processing.dataset_flipper as flipper
@@ -45,7 +45,7 @@ def update_settings(config_type: str, json_to_apply: Dict[str, Any]) -> bool:
         # update settings with new data
         for key, value in json_to_apply.items():
             data[key] = value
-            logger.debug(f"Updated key: {key} with value: {value}.")
+            logger.debug(f"Updated key: {key} with value: {value}")
 
         # write out updated settings file
         with open(constants.CONFIG_FILE_PATHS[config_type], "w") as outfile:
@@ -63,10 +63,14 @@ def analyze():
     with open(constants.PARSER_CONFIG_FILE_PATH) as json_file:
         config = json.load(json_file)
 
-    input_path = config.get("inputPath")
+    if config["isDirectory"]:
+        input_path = config.get("pathForPreview")
+    else:
+        input_path = config.get("inputPath")
+    
     inputFileEncoding = config.get("inputFileEncoding")
-
     logger.debug(f"Analyzing input file: {input_path}")
+
     if analyzer.process_file(input_path=input_path, input_encoding=inputFileEncoding):
         # return path to settings file
         return constants.PARSER_CONFIG_FILE_PATH
@@ -119,35 +123,57 @@ def get_data(kwargs: Dict = {}) -> Union[pd.DataFrame, str, Dict]:
         )
 
 
-
-    if is_directory(file_path):
+    file_path = Path(file_path)
+    if file_path.is_dir():
         logger.info(f"Input path is directory: {file_path}")
-        logger.info("Found files: ")
-        logger.info(os.listdir(file_path))
-        return
+        files = [f for f in file_path.iterdir() if not list(f.name)[0] == "." and f.is_file()]
+
+        logger.info(f"Found files: {files}")
+        logger.info("First file will be used for config.")
+        
+        file_path = files[0]
+        
+        update_settings(
+            config_type="parser",
+            json_to_apply={
+                "pathForPreview": str(file_path),
+                "isDirectory": True,
+                "targetFiles": [str(path) for path in files],
+                }
+            )
     else:
-        if file_path.lower().endswith(".csv"):
-            try:
-                df = pd.read_csv(filepath_or_buffer=file_path, **kwargs)
+        update_settings(
+            config_type="parser",
+            json_to_apply={
+                "pathForPreview": str(file_path),
+                "isDirectory": False,
+                "targetFiles": None,
+                }
+            )
+        
+    if file_path.suffix == ".csv":
 
-                if format == "dataframe":
-                    return df
-                if format == "json":
-                    return df.to_json()
-                else:
-                    return df.to_dict()
+        try:
+            df = pd.read_csv(filepath_or_buffer=file_path, **kwargs)
 
-            except FileNotFoundError as e:
-                logger.error(f"Target dataset does not exist: {e}")
-            except ValueError as e:
-                logger.error(
-                    f"Dataset could not be converted to requested type: {format}: {e}"
-                )
+            if format == "dataframe":
+                return df
+            if format == "json":
+                return df.to_json()
+            else:
+                return df.to_dict()
 
-        elif file_path.lower().endswith(".nc"):
-            # datasource = xr.open_dataset(file_path)
-            # return datasource.to_dataframe()
-            raise NotImplementedError
+        except FileNotFoundError as e:
+            logger.error(f"Target dataset does not exist: {e}")
+        except ValueError as e:
+            logger.error(
+                f"Dataset could not be converted to requested type: {format}: {e}"
+            )
+
+    elif file_path.suffix == ".nc":
+        # datasource = xr.open_dataset(file_path)
+        # return datasource.to_dataframe()
+        raise NotImplementedError
 
 
 def process():
@@ -158,38 +184,28 @@ def process():
         config = json.load(json_file)
 
         to_process = []
+        to_concat = []
+
         if config["isDirectory"]:
-            # gets list of files, ignoring hidden
-            raw_files = [
-                f for f in os.listdir(config["inputPath"]) if not f.startswith(".")
-            ]
-            # add the full path back in
-            to_process = list(
-                map(lambda current: config["inputPath"] + "/" + current, raw_files)
-            )
-            # creates output directory if it does not exist
-            if not os.path.exists(os.path.dirname(config["outputFilePath"])):
-                try:
-                    os.makedirs(os.path.dirname(config["outputFilePath"]))
-                except OSError as exc:  # guard against race condition
-                    if exc.errno != errno.EEXIST:
-                        raise
+            to_process = config["targetFiles"]
         else:
             to_process.append(config["inputPath"])
 
         for current_file in to_process:
+            logger.debug(f"Opening file: {current_file}")
+
             f = open(current_file, encoding=config["inputFileEncoding"])
             if f:
-                output_path = config["outputFilePath"]
-                if os.path.isdir(config["outputFilePath"]) or config["isDirectory"]:
-                    outfile = "OUT_" + os.path.basename(current_file)
-                    output_path = output_path + outfile
+                output_path = Path(config["outputFilePath"])
+                if output_path.is_dir() or config["isDirectory"]:
+                    outfile = "OUT_" + Path(current_file).name
+                    output_path = output_path.parent / outfile
 
                 # Correct times
                 if config["fixTimes"]:
                     ret = parser.compile_datetime(
                         f,
-                        output_path,
+                        str(output_path),
                         config["dateFields"],
                         config["timeField"],
                         config["parsedColumnName"],
@@ -202,16 +218,14 @@ def process():
                     config["dropDuplicates"]
                     or config["dropEmpty"]
                     or config["normalizeHeaders"]
+                    or config["appendHeaders"]
                     or config["replaceValues"]
                     or config["deleteColumns"]
                 ):
                     logger.info("Additional fixes selected, opening data frame")
 
-                    if os.path.isfile(output_path):
-                        input_frame = pd.read_csv(output_path)
-                    else:
-                        input_frame = pd.read_csv(current_file)
-
+                    input_frame = pd.read_csv(output_path)
+         
                     if config["dropDuplicates"]:
                         logger.info("Removing duplicate columns")
                         csv_utils.drop_duplicate_columns(
@@ -244,6 +258,13 @@ def process():
                                 current_replacement_pair.get("original"),
                                 current_replacement_pair.get("replacement"),
                             )
+                    if config["appendHeaders"]:
+                        logger.info("Appending row values to column headers")
+                        csv_utils.append_row_header(
+                            input_frame=input_frame,
+                            row_index=config["rowForColumnAppend"],
+                            drop_row=config["dropAppendedRow"]
+                        )
                     if config["replaceValues"]:
                         logger.info("Replacing values in rows")
                         for current_replacement_pair in config["rowValuesToReplace"]:
@@ -254,11 +275,23 @@ def process():
                                 config.get("columnsForReplace"),
                             )
 
-                    # write out file
-                    logger.info("Writing out data frame")
-                    csv_utils.write_out_data_frame(
-                        input_frame, output_path, config["inputFileEncoding"]
-                    )
+                    if config["concatFiles"]:
+                        to_concat.append(input_frame)
+                    else:
+                        # write out file
+                        logger.info("Writing out data frame")
+                        csv_utils.write_out_data_frame(
+                            input_frame, output_path, config["inputFileEncoding"]
+                        )
+
+    if config["concatFiles"]:
+        logger.info(f"Concatenating files in directory: {config["inputPath"]}")
+                    
+        csv_utils.concat_input_files(
+            input_files=to_concat,
+            output_encoding=config["inputFileEncoding"],
+            out_path=config["outputFilePath"]
+        )
 
     logger.info("Processing complete")
     return True
@@ -268,13 +301,6 @@ def is_directory(input_path):
     return os.path.isdir(input_path)
 
 
-def concat_files(input_path):
-    # open settings
-    with open(constants.PARSER_CONFIG_FILE_PATH) as json_file:
-        config = json.load(json_file)
-
-    logger.info("Concatenating files in directory: %s", input_path)
-    return csv_utils.concat_input_files(input_path, config.get("inputFileEncoding"))
 
 
 def init_quality_check():
@@ -350,6 +376,11 @@ def flip_dataset():
         transform_config.get("drop_units"),
         transform_config.get("drop_empty_records"),
         transform_config.get("split_fields"),
+        transform_config.get("delimiter"),
+        transform_config.get("split_column_name"),
+        transform_config.get("match_col_variants"),
+        transform_config.get("primary_units"),
+        transform_config.get("alt_units"),
         transform_config.get("set_occurrence_status"),
         transform_config.get("gen_UUID"),
         transform_config.get("constants"),
@@ -357,44 +388,47 @@ def flip_dataset():
 
     parser_config = get_settings_json("parser")
 
-    # create list of possible time fields
-    time_fields = [
-        parser_config.get("parsedColumnName"),
-        parser_config.get("timeField").get("time"),
-    ]
-
-    # create regular expression that matches "Date" and "time" regardless of capitalization
-    regex = re.compile(r"(?i)date|time")
-
-    # find first time field that exists in flipped_df or matches the regular expression
-    for time_field in time_fields:
-        if time_field in flipped_df.columns:
-            sort_by_column = time_field
-            break
-        elif regex.search(time_field):
-            match = regex.search(time_field).group(0)
-            sort_by_column = next(
-                (col for col in flipped_df.columns if match.lower() in col.lower()),
-                None,
-            )
-            if sort_by_column:
-                break
-    else:
-        # if no time field is found, raise an exception
-        raise ValueError("No valid time field found in flipped_df")
-
-    # sort by parsed time and flipped column name, ascending
-    flipped_df.sort_values(
-        by=[
-            sort_by_column,
-            transform_config.get("results_column"),
-        ],
-        ascending=True,
-        inplace=True,
-    )
-
     csv_utils.write_out_data_frame(
         flipped_df,
+        transform_config.get("transform_output_path"),
+        parser_config["inputFileEncoding"],
+    )
+
+    return True
+
+
+def pivot_dataset():
+    transform_config = get_settings_json("transform")
+
+    logger.info("Pivoting dataset...")
+    logger.debug(
+        "Pivot args: pivot_column: {}".format(
+            transform_config.get("pivot_column")
+        )
+    )
+    logger.debug(
+        "Pivot args: value_column: {}".format(
+            transform_config.get("pivot_value_column")
+        )
+    )
+    logger.debug(
+        "Pivot args: transform_output_path: {}".format(
+            transform_config.get("transform_output_path")
+        )
+    )
+
+    df = get_data(kwargs={"format": "dataframe"})
+
+    pivoted_df = flipper.pivot(
+        input_data=df,
+        pivoted_column=transform_config.get("pivot_column"),
+        value_column=transform_config.get("pivot_value_column"),
+    )
+
+    parser_config = get_settings_json("parser")
+
+    csv_utils.write_out_data_frame(
+        pivoted_df,
         transform_config.get("transform_output_path"),
         parser_config["inputFileEncoding"],
     )
@@ -407,12 +441,13 @@ def combine_rows():
 
     logger.info("Combining rows...")
 
-    df = get_data(kwargs={"format": "df"})
+    df = get_data(kwargs={"format": "dataframe"})
 
     results_df = csv_utils.combine_rows(
         df,
-        transform_config.get("columns_to_match"),
+        transform_config.get("match_columns"),
         transform_config.get("append_prefix"),
+        transform_config.get("match_pattern"),
     )
 
     logger.info(

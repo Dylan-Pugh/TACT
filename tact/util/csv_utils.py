@@ -1,5 +1,6 @@
 import os
 import glob
+import re
 import pandas as pd
 
 
@@ -53,6 +54,42 @@ def replace_char_in_headers(input_frame, char_to_replace, replacement_char):
     ).str.replace(char_to_replace, replacement_char)
 
 
+def append_row_header(input_frame: pd.DataFrame, row_index: int = 0, drop_row: bool = False):
+    """
+    For input DataFrame, take the specified row and append its values to the column names.
+
+    Args:
+        input_frame (pd.DataFrame): The DataFrame to modify.
+        row_index (int): The index of the row whose values will be appended to the column names. Default is 0 (first row).
+    """
+    if input_frame.empty or input_frame.shape[0] <= row_index:
+        return input_frame
+
+    modified_columns = []
+    for current_column in input_frame.columns.drop_duplicates():
+        to_process = []
+
+        col_value = input_frame.at[row_index, current_column]
+        
+        if isinstance(col_value, pd.Series):
+            to_process.extend(col_value.values.tolist())
+        else:
+            to_process.append(col_value)
+        
+        for new_value in to_process:
+            if pd.notnull(new_value) and str(new_value) != '':
+                appended_name = f"{current_column}_{str(new_value).strip()}"
+                modified_columns.append(appended_name)
+            else:
+                modified_columns.append(current_column)
+  
+    input_frame.columns = modified_columns
+
+    if drop_row:
+        input_frame.drop(input_frame.index[row_index], inplace=True)
+        #input_frame.reset_index(drop=True, inplace=True)
+
+
 def replace_in_rows(
     input_frame, value_to_replace, replacement_value, target_columns=None
 ):
@@ -75,14 +112,18 @@ def write_out_data_frame(input_frame, output_file, output_encoding):
     input_frame.to_csv(output_file, index=False, encoding=output_encoding)
 
 
-def concat_input_files(inputDirectory, output_encoding):
-    os.chdir(inputDirectory)
-    extension = "csv"
-    out_path = inputDirectory + "/combined." + extension
-    all_filenames = [i for i in glob.glob("*.{}".format(extension))]
+def concat_input_files(input_files, output_encoding, out_path):
+    if isinstance(input_files, str):
+        # If input is a path to a dir
+        os.chdir(input_files)
+        extension = "csv"
+        all_filenames = [i for i in glob.glob("*.{}".format(extension))]
 
-    # combine all files in the list
-    combined_csv = pd.concat([pd.read_csv(f) for f in all_filenames])
+        # combine all files in the list
+        combined_csv = pd.concat([pd.read_csv(f) for f in all_filenames], ignore_index=True)
+    else:
+        combined_csv = pd.concat(input_files, ignore_index=True)
+
     combined_csv.drop_duplicates(keep="first", inplace=True)
 
     # export to csv
@@ -118,19 +159,65 @@ def merge_grouped_rows(group_df, append_prefix):
     return pd.DataFrame.from_dict(output_rows)
 
 
-def combine_rows(input_frame, columns_to_match: list, append_prefix="ADDED_"):
+def sort_by_time(input_frame: pd.DataFrame, time_fields: list[str] = None) -> pd.DataFrame:
+
+    # create regular expression that matches "Date" and "time" regardless of capitalization
+    regex = re.compile(r"(?i)date|time")
+
+    # find first time field that exists in flipped_df or matches the regular expression
+    for time_field in time_fields:
+        if time_field in input_frame.columns:
+            sort_by_column = time_field
+            break
+        elif regex.search(time_field):
+            match = regex.search(time_field).group(0)
+            sort_by_column = next(
+                (col for col in input_frame.columns if match.lower() in col.lower()),
+                None,
+            )
+            if sort_by_column:
+                break
+        else:
+            # if no time field is found, raise an exception
+            raise ValueError("No valid time field found in flipped_df")
+
+    #sort by parsed time and flipped column name, ascending
+    input_frame.sort_values(
+        by=[
+            sort_by_column,
+            input_frame.get("results_column"),
+        ],
+        ascending=True,
+        inplace=True,
+    )
+
+    return input_frame
+
+
+def combine_rows(input_frame: pd.DataFrame, match_columns: list, append_prefix="ADDED_", match_pattern: str = None):
     """
     Combines rows in a given dataframe based on provided match criteria.
     The new row will have one copy of all duplicate values, and new columns for each unique value.
     There's probably an 'easier' or more effcient way to do this using a fancy Pandas function, but Pandas is also extremely opaque and I'm too dumb to figure it out.
     I'll buy you a beer if you improve this function.
     :param input_frame: Dataframe object
-    :param columns_to_match: Columns used to determine whether a row 'matches' another
+    :param match_columns: Columns used to determine whether a row 'matches' another
     :param append_prefix: String to append to added column names
     :return: New dataframe with combined rows
     """
 
-    grouped = input_frame.groupby(columns_to_match)
+    print(f"Match pattern: {match_pattern}")
+
+    if match_pattern:
+        # cannot correctly unpack list of cols ,but single col works
+        # grouped = input_frame.groupby(by=input_frame[match_columns].apply(lambda x: re.sub(match_pattern, '', str(x))))
+        #grouped = input_frame.groupby(by=input_frame['time'].apply(lambda x: re.sub(match_pattern, '', str(x))))
+        grouped = input_frame.groupby(by=input_frame[[match_columns]].apply(lambda x: re.sub(match_pattern, '', str(x))))
+    else:
+        grouped = input_frame.groupby(match_columns)
+    
+    print("Number of groups:", len(grouped))
+    print("Groups:", list(grouped.groups.keys()))
     new_df = grouped.apply(merge_grouped_rows, append_prefix)
 
     return new_df

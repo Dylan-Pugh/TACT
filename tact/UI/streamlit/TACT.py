@@ -19,7 +19,7 @@ col1, col2 = st.columns([1, 6])
 with col1:
     st.image(
         "tact/UI/streamlit/assets/TACT-logos_white.png",
-        use_column_width="auto",
+        use_container_width="auto",
     )
 
 with col2:

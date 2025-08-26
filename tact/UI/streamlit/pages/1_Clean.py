@@ -12,6 +12,16 @@ def display_analysis(config, api_handle):
             inputPath = st.text_input(
                 key="inputPath", label="Input file path", value=config["inputPath"]
             )
+
+            if config["targetFiles"]:
+                with st.expander(
+                    label="Files found in input directory",
+                    expanded=config["isDirectory"],
+                ):
+                    for file in config["targetFiles"]:
+                        st.text(body=file)
+                
+            
         with col2:
             inputFileEncoding = st.selectbox(
                 key="inputFileEncoding",
@@ -27,11 +37,13 @@ def display_analysis(config, api_handle):
                 value=config["outputFilePath"],
             )
         with col4:
-            concatFiles = st.checkbox(
-                key="concatFiles",
-                label="Concatenate input files",
-                disabled=not config["isDirectory"],
-            )
+            if config["isDirectory"]:
+                concatFiles = st.checkbox(
+                    key="concatFiles",
+                    label="Concatenate input files",
+                    value=config["concatFiles"],
+                    # disabled=not config["isDirectory"],
+                )
 
         # parsed time settings
         col5, col6, col7 = st.columns([2, 4, 4])
@@ -48,6 +60,16 @@ def display_analysis(config, api_handle):
                 key="normalizeHeaders",
                 label="Normalize Headers",
                 value=config["normalizeHeaders"],
+            )
+            appendHeaders = st.checkbox(
+                key="appendHeaders",
+                label="Append Row Value to Headers",
+                value=config["appendHeaders"],
+            )
+            dropAppendedRow = st.checkbox(
+                key="dropAppendedRow",
+                label="Drop Appended Row ^",
+                value=config["dropAppendedRow"],
             )
             replaceValues = st.checkbox(
                 key="replaceValues",
@@ -116,6 +138,13 @@ def display_analysis(config, api_handle):
         ]
 
         with col9:
+            rowForColumnAppend = st.number_input(
+                key="rowForColumnAppend",
+                label="Row to append to Column Headers",
+                min_value=0,
+                max_value=len(config["fieldNames"]),
+            )
+
             columnsForReplace = st.multiselect(
                 key="columnsForReplace",
                 label="Target Columns for Row Replacement (blank will target all columns)",

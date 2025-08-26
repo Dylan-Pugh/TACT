@@ -112,14 +112,18 @@ def write_out_data_frame(input_frame, output_file, output_encoding):
     input_frame.to_csv(output_file, index=False, encoding=output_encoding)
 
 
-def concat_input_files(inputDirectory, output_encoding):
-    os.chdir(inputDirectory)
-    extension = "csv"
-    out_path = inputDirectory + "/combined." + extension
-    all_filenames = [i for i in glob.glob("*.{}".format(extension))]
+def concat_input_files(input_files, output_encoding, out_path):
+    if isinstance(input_files, str):
+        # If input is a path to a dir
+        os.chdir(input_files)
+        extension = "csv"
+        all_filenames = [i for i in glob.glob("*.{}".format(extension))]
 
-    # combine all files in the list
-    combined_csv = pd.concat([pd.read_csv(f) for f in all_filenames])
+        # combine all files in the list
+        combined_csv = pd.concat([pd.read_csv(f) for f in all_filenames], ignore_index=True)
+    else:
+        combined_csv = pd.concat(input_files, ignore_index=True)
+
     combined_csv.drop_duplicates(keep="first", inplace=True)
 
     # export to csv

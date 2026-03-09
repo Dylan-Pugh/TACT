@@ -29,13 +29,8 @@ const ConfigForm = ({ onUploadSuccess }) => {
         formData.append('file', file);
 
         try {
-            // Send file to the new /upload endpoint
-            // Note: Nginx proxies /api and /upload etc based on config.
-            // My previous Nginx config forwarded ^/(config|analysis|etc)
-            // I need to make sure 'upload' is covered.
-            // Using a relative path which Nginx handles.
-            // If nginx location regex doesn't match 'upload', this will fail.
-            // I must update nginx config too.
+            // Send file to /upload endpoint
+            // Using a relative path which Nginx handles
             const response = await fetch('/upload', {
                 method: 'POST',
                 body: formData,
@@ -92,9 +87,9 @@ const ConfigForm = ({ onUploadSuccess }) => {
 
     return (
         <div className="config-form-container">
-            <h2>Upload Input File</h2>
+            <h2>Upload Input File(s)</h2>
             <p className="description">
-                Select your CSV data file to upload and process.
+                Select target .csv or directory.
             </p>
 
             <form onSubmit={handleSubmit}>

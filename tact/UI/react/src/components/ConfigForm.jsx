@@ -1,13 +1,19 @@
 import { useState } from 'react';
 
 const ConfigForm = ({ onUploadSuccess }) => {
-    const [file, setFile] = useState(null);
+    const [files, setFiles] = useState([]);
+    const [folderMode, setFolderMode] = useState(false);
     const [message, setMessage] = useState('');
     const [status, setStatus] = useState(''); // 'success' or 'error'
 
+    const toggleFolderMode = () => {
+        setFiles([]);
+        setFolderMode(prev => !prev);
+    };
+
     const handleFileChange = (e) => {
         if (e.target.files && e.target.files.length > 0) {
-            setFile(e.target.files[0]);
+            setFiles(Array.from(e.target.files));
             setMessage('');
             setStatus('');
         }
@@ -16,17 +22,19 @@ const ConfigForm = ({ onUploadSuccess }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!file) {
-            setMessage('Please select a file first.');
+        if (files.length === 0) {
+            setMessage('Please select a file or directory first.');
             setStatus('error');
             return;
         }
 
-        setMessage('Uploading file...');
+        setMessage('Uploading...');
         setStatus('');
 
         const formData = new FormData();
-        formData.append('file', file);
+        files.forEach(file => {
+            formData.append('file', file);
+        });
 
         try {
             // Send file to /upload endpoint
@@ -93,20 +101,55 @@ const ConfigForm = ({ onUploadSuccess }) => {
             </p>
 
             <form onSubmit={handleSubmit}>
+                {/* Mode selector */}
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '0.75rem' }}>
+                    <button
+                        type="button"
+                        className={!folderMode ? 'primary' : 'secondary'}
+                        onClick={() => { setFiles([]); setFolderMode(false); }}
+                    >
+                        File Select
+                    </button>
+                    <button
+                        type="button"
+                        className={folderMode ? 'primary' : 'secondary'}
+                        onClick={() => { setFiles([]); setFolderMode(true); }}
+                    >
+                        Folder Select
+                    </button>
+                </div>
+
                 <div className="form-group" style={{ marginBottom: '1rem' }}>
-                    <label htmlFor="fileInput">Choose File:</label>
+                    <label htmlFor="fileInput">
+                        {folderMode ? 'Choose folder:' : 'Choose file(s):'}
+                    </label>
                     <input
+                        key={folderMode ? 'folder' : 'file'}
                         id="fileInput"
                         type="file"
                         onChange={handleFileChange}
-                        accept=".csv,.nc"
+                        {...(folderMode
+                            ? { webkitdirectory: 'true', directory: 'true' }
+                            : { accept: '.csv,.nc', multiple: true }
+                        )}
                     />
                 </div>
 
-                <div style={{ display: 'flex', gap: '10px', marginBottom: '1rem' }}>
-                    <button type="submit" disabled={!file} className="primary">Upload File</button>
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '1rem', alignItems: 'center' }}>
+                    <button type="submit" disabled={files.length === 0} className="primary">Upload</button>
                     <button type="button" onClick={handleTestModeSubmit} className="secondary">Test Mode</button>
                 </div>
+
+                {files.length > 1 && (
+                    <div style={{ marginBottom: '1rem', padding: '10px', border: '1px solid #ccc', borderRadius: '4px', backgroundColor: '#f9f9f9' }}>
+                        <h4 style={{ margin: '0 0 10px 0', fontSize: '0.9em', color: '#333' }}>Selected Files ({files.length}):</h4>
+                        <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '0.85em', maxHeight: '150px', overflowY: 'auto', color: '#555', fontFamily: 'monospace' }}>
+                            {files.map((f, i) => (
+                                <li key={i}>{f.webkitRelativePath || f.name}</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
             </form>
 
             {message && <div className={`status-message ${status}`}>{message}</div>}

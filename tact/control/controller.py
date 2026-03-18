@@ -147,6 +147,7 @@ def get_data(kwargs: Dict = {}) -> Union[pd.DataFrame, str, Dict]:
             json_to_apply={
                 "pathForPreview": str(file_path),
                 "isDirectory": False,
+                "concatFiles": False,
                 "targetFiles": None,
                 }
             )
@@ -223,9 +224,20 @@ def process():
                     or config["deleteColumns"]
                 ):
                     logger.info("Additional fixes selected, opening data frame")
+                    
+                    try:
+                        if config["fixTimes"]:
+                            # parser.compile_datetime() writes the file, so we need to open output
+                            input_frame = pd.read_csv(output_path)
+                        else:
+                            # otherwise we want the input, because output path has not been written
+                            input_frame = pd.read_csv(current_file)
+                    except FileNotFoundError as e:
+                        logger.error(f"Failed to open file for additional fixes: {e}")
+                        logger.debug(f"Input path is: {config["inputPath"]}")
+                        logger.debug(f"Output path is: {config["outputFilePath"]}")
+                        logger.debug(f"Current file is: {current_file}")
 
-                    input_frame = pd.read_csv(output_path)
-         
                     if config["dropDuplicates"]:
                         logger.info("Removing duplicate columns")
                         csv_utils.drop_duplicate_columns(

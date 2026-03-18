@@ -1,0 +1,301 @@
+/* Utilitarian / Old School Theme (Valgrind/LLVM inspired) */
+
+:root {
+  font-family: "Times New Roman", Times, serif;
+  background-color: #ffffff;
+  color: #000000;
+  line-height: 1.2;
+}
+
+body {
+  margin: 8px;
+  background-color: white;
+}
+
+#root {
+  width: 100%;
+  max-width: 1024px;
+  /* Standard old monitor width, or 100% if preferred */
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+/* Header */
+.app-header {
+  border-bottom: 3px solid #000;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  background-color: #eee;
+  padding: 10px;
+}
+
+.app-header h1 {
+  font-size: 2em;
+  margin: 0;
+  color: #000;
+  font-weight: bold;
+}
+
+.app-header p {
+  margin: 5px 0 0 0;
+  font-style: italic;
+  font-size: 1em;
+}
+
+/* Navigation */
+.app-nav {
+  margin-top: 15px;
+  padding: 5px 0;
+  background-color: #ddd;
+  border: 1px solid #999;
+}
+
+.nav-btn {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 1.1em;
+  color: #0000EE;
+  /* Default link blue */
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0 10px;
+  margin-right: 5px;
+}
+
+.nav-btn:hover {
+  background-color: transparent;
+  color: red;
+}
+
+.nav-btn.active {
+  color: #000;
+  text-decoration: none;
+  font-weight: bold;
+  background-color: #fff;
+  border: 1px solid #999;
+}
+
+/* Taxonomic Match Highlights */
+tr.match-exact {
+  background-color: #e8f5e9;
+}
+
+/* Light green */
+tr.match-exact_subgenus {
+  background-color: #f1f8e9;
+}
+
+/* Lighter green */
+tr.match-phonetic {
+  background-color: #fffde7;
+}
+
+/* Pale yellow */
+tr.match-near_1 {
+  background-color: #fff8e1;
+}
+
+/* Pale amber */
+tr.match-near_2 {
+  background-color: #fff3e0;
+}
+
+/* Pale orange */
+tr.match-near_3 {
+  background-color: #ffebee;
+}
+
+/* Pale red */
+tr.match-match_quarantine {
+  background-color: #eeeeee;
+}
+
+/* Light gray */
+tr.match-match_deleted {
+  background-color: #f5f5f5;
+}
+
+/* Very light gray */
+
+.taxon-preview-container {
+  max-height: 500px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+  border: 1px solid #ddd;
+}
+
+/* Forms */
+.config-form-container {
+  border: 1px solid #000;
+  padding: 15px;
+  background-color: #f0f0f0;
+  margin-bottom: 20px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+input[type="text"],
+input[type="file"],
+input[type="number"],
+select {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 1em;
+  padding: 4px;
+  border: 1px solid #999;
+  background-color: #fff;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Layout Utility Classes for Forms & Pages */
+.responsive-grid {
+  display: grid;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.grid-2-col {
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+}
+
+.grid-1-col {
+  grid-template-columns: 1fr;
+}
+
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Data Editor Specific Containment */
+.data-editor-container {
+  width: 100%;
+  overflow-x: auto;
+  box-sizing: border-box;
+}
+
+button {
+  font-family: sans-serif;
+  /* Buttons often sans-serif even in old pages */
+  font-size: 0.9em;
+  font-weight: bold;
+  padding: 3px 10px;
+  background-color: #ddd;
+  border: 1px solid #666;
+  color: #000;
+  cursor: pointer;
+}
+
+button:active {
+  background-color: #bbb;
+  border: 1px solid #000;
+}
+
+button[disabled] {
+  color: #888;
+  cursor: default;
+}
+
+/* Clean Page & Tables */
+h2 {
+  border-bottom: 1px solid #000;
+  font-size: 1.5em;
+  margin-top: 0;
+}
+
+h3 {
+  font-size: 1.2em;
+  background-color: #e0e0e0;
+  padding: 5px;
+  margin-bottom: 10px;
+}
+
+.table-container {
+  overflow-x: auto;
+  border: 1px solid #000;
+  margin-bottom: 20px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 0.9em;
+}
+
+th,
+td {
+  border: 1px solid #000;
+  padding: 4px;
+  text-align: left;
+}
+
+th {
+  background-color: #ccc;
+  font-weight: bold;
+}
+
+tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 5px;
+  border: 1px dotted #999;
+  padding: 10px;
+  background-color: #fff;
+}
+
+.checkbox-item label {
+  font-weight: normal;
+  display: flex;
+  align-items: center;
+}
+
+input[type="checkbox"] {
+  margin-right: 5px;
+}
+
+/* Messages */
+.status-message {
+  border: 1px solid;
+  padding: 10px;
+  margin: 10px 0;
+  font-family: sans-serif;
+  font-weight: bold;
+}
+
+.status-message.success {
+  border-color: green;
+  background-color: #efe;
+  color: green;
+}
+
+.status-message.error {
+  border-color: red;
+  background-color: #fee;
+  color: red;
+}
+
+.status-message.info {
+  border-color: blue;
+  background-color: #eef;
+  color: blue;
+}

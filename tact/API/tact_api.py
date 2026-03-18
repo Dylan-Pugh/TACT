@@ -1,8 +1,13 @@
 from flask import Flask, request, make_response
+from os import path, makedirs
+from shutil import rmtree
+from werkzeug.utils import secure_filename
 import tact.control.controller as controller
 
 app = Flask(__name__)
 app.config["JSON_SORT_KEYS"] = False
+# 16mb max upload size
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1000 * 1000
 
 
 @app.route("/config/<string:config_type>", methods=["GET", "PATCH"])
@@ -41,6 +46,54 @@ def config(config_type):
                     400,
                 )
             )
+
+
+@app.route("/upload", methods=["POST"])
+def upload_file():
+    if "file" not in request.files:
+        return make_response(({"message": "No file part"}, 400))
+    
+    files = request.files.getlist("file")
+    
+    if not files:
+        return make_response(({"message": "No selected file(s)"}, 400))
+        
+    # Create a unique directory for current session
+    # For future multi-user support, replace with the actual session UUID
+    session_id = "default_user"
+    upload_batch_dir = path.join("/tmp/uploads", session_id)
+    
+    # Wipe the user's directory to prevent endless file accumulation
+    if path.exists(upload_batch_dir):
+        rmtree(upload_batch_dir)
+        
+    makedirs(upload_batch_dir, exist_ok=True)
+    
+    saved_files = []
+    for file in files:
+        if file and file.filename:
+            # Secure filename to prevent directory traversal attacks
+            basename = secure_filename(path.basename(file.filename))
+            file_path = path.join(upload_batch_dir, basename)
+            if not path.exists(file_path):
+                file.save(file_path)
+                saved_files.append(file_path)
+                
+    if not saved_files:
+        return make_response(({"message": "No valid files received"}, 400))
+        
+    is_directory = len(saved_files) > 1
+    input_path = upload_batch_dir if is_directory else saved_files[0]
+    path_for_preview = saved_files[0]
+    
+    if controller.update_settings("parser", {
+        "inputPath": input_path, 
+        "pathForPreview": path_for_preview, 
+        "isDirectory": is_directory
+    }):
+        return make_response(({"message": "File(s) uploaded and config updated"}, 200))
+    else:
+        return make_response(({"message": "File(s) uploaded but config update failed"}, 500))
 
 
 @app.route("/analysis")
@@ -126,6 +179,9 @@ def transform():
         )
 
 
+import os
+
 # launch API
 if __name__ == "__main__":
-    app.run()
+    port = int(os.environ.get("FLASK_RUN_PORT", 5000))
+    app.run(host="0.0.0.0", port=port)

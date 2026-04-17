@@ -2,7 +2,7 @@ name: tact
 channels:
   - conda-forge
 dependencies:
-  - python
+  - python=3.12
   - pip
   - flask
   - streamlit
@@ -12,3 +12,5 @@ dependencies:
   - ydata-profiling
   - streamlit-pandas-profiling
   - xarray
+  - pytest
+  - pytest-flaskclear

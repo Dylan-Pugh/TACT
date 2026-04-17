@@ -1,0 +1,29 @@
+name: Python API Tests
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main", "dev" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    # Using micromamba action to closely match the local/docker environment format
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Micromamba
+      uses: mamba-org/setup-micromamba@v1
+      with:
+        environment-file: tact/environment.yml
+        # ensure we create an environment matching the yml file name
+        environment-name: tact
+        cache-environment: true
+        
+    - name: Run Pytest
+      run: |
+        # Set PYTHONPATH so 'tact' package is discovered correctly
+        export PYTHONPATH=$GITHUB_WORKSPACE
+        micromamba run -n tact pytest tact/testing/test_api.py -v

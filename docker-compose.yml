@@ -1,0 +1,24 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tact-backend
+    ports:
+      - "5001:5000"
+    volumes:
+      - .:/app
+    environment:
+      - FLASK_ENV=development
+      # Ensure python buffering is off so logs show up
+      - PYTHONUNBUFFERED=1
+
+  frontend:
+    build:
+      context: ./tact/UI/react
+      dockerfile: Dockerfile
+    container_name: tact-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend

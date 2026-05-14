@@ -6,6 +6,7 @@ CONFIG_FILE_PATHS = {
     "XML_CONFIG_PATH": "tact/config/generateDatasetsXmlConfig.JSON",
     "IOOS_QC_CONFIG_PATH": "tact/config/qc_configs/qc_config.json",
     "transform": "tact/config/transformConfig.JSON",
+    "forecast": "tact/config/forecastConfig.JSON",
 }
 PARSER_CONFIG_FILE_PATH = (
     "tact/config/parserConfig.JSON"

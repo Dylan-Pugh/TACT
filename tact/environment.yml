@@ -12,3 +12,5 @@ dependencies:
   - ydata-profiling
   - streamlit-pandas-profiling
   - xarray
+  - pip:
+    - torch>=2.0.0

@@ -211,6 +211,27 @@ button[disabled] {
   cursor: default;
 }
 
+button.primary {
+  background-color: #1a6faf;
+  border-color: #0d4f80;
+  color: #fff;
+}
+
+button.primary:hover:not([disabled]) {
+  background-color: #155d95;
+}
+
+button.secondary {
+  background-color: #fff;
+  border-color: #666;
+  color: #333;
+}
+
+button.secondary:hover:not([disabled]) {
+  background-color: #eee;
+}
+
+
 /* Clean Page & Tables */
 h2 {
   border-bottom: 1px solid #000;

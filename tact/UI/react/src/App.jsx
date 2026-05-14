@@ -3,6 +3,7 @@ import ConfigForm from './components/ConfigForm'
 import CleanPage from './components/CleanPage'
 import TransformPage from './components/TransformPage'
 import BioDataUtilsPage from './components/BioDataUtilsPage'
+import ForecastPage from './components/ForecastPage'
 import './App.css'
 
 function App() {
@@ -42,6 +43,12 @@ function App() {
           >
             Biological Utilities
           </button>
+          <button
+            className={currentView === 'forecast' ? 'nav-btn active' : 'nav-btn'}
+            onClick={() => setCurrentView('forecast')}
+          >
+            Forecast
+          </button>
         </nav>
       </header>
       <main>
@@ -49,6 +56,7 @@ function App() {
         {currentView === 'clean' && <CleanPage />}
         {currentView === 'transform' && <TransformPage />}
         {currentView === 'bioUtils' && <BioDataUtilsPage />}
+        {currentView === 'forecast' && <ForecastPage />}
       </main>
     </>
   )

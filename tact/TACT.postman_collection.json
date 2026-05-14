@@ -103,12 +103,134 @@
 							"response": []
 						},
 						{
+							"name": "GET Forecast Config",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:5000/config/forecast",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "5000",
+									"path": [
+										"config",
+										"forecast"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "PATCH Forecast Config",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"horizon\": 200,\n    \"target_data_columns\": [\"ATMP\"]\n}"
+								},
+								"url": {
+									"raw": "http://127.0.0.1:5000/config/forecast",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "5000",
+									"path": [
+										"config",
+										"forecast"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET Transform Config",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:5000/config/transform",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "5000",
+									"path": [
+										"config",
+										"transform"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "PATCH Transform Config",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"target_data_columns\": [\"ATMP\"]\n}"
+								},
+								"url": {
+									"raw": "http://127.0.0.1:5000/config/transform",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "5000",
+									"path": [
+										"config",
+										"transform"
+									]
+								}
+							},
+							"response": []
+						},
+						{
 							"name": "PATCH Log Config",
 							"request": {
 								"method": "PATCH",
-								"header": [],
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"logLevel\": \"INFO\",\n    \"backupCount\": 5,\n    \"consoleFormatting\": \"%(name)s - %(levelname)s - %(message)s\",\n    \"fileFormatting\": \"%(asctime)s - %(name)s - %(levelname)s - %(message)s\"\n}"
+								},
 								"url": {
-									"raw": "http://127.0.0.1:5000/config/LOG_CONFIG_PATH?outgoing_config_json={\"logLevel\": \"INFO\", \"backupCount\": 5, \"consoleFormatting\": \"%(name)s - %(levelname)s - %(message)s\", \"fileFormatting\": \"%(asctime)s - %(name)s - %(levelname)s - %(message)s\"}",
+									"raw": "http://127.0.0.1:5000/config/LOG_CONFIG_PATH",
 									"protocol": "http",
 									"host": [
 										"127",
@@ -120,13 +242,6 @@
 									"path": [
 										"config",
 										"LOG_CONFIG_PATH"
-									],
-									"query": [
-										{
-											"key": "outgoing_config_json",
-											"value": "{\"logLevel\": \"INFO\", \"backupCount\": 5, \"consoleFormatting\": \"%(name)s - %(levelname)s - %(message)s\", \"fileFormatting\": \"%(asctime)s - %(name)s - %(levelname)s - %(message)s\"}",
-											"description": "Config JSON to apply"
-										}
 									]
 								}
 							},
@@ -336,7 +451,181 @@
 				},
 				{
 					"name": "Transform",
-					"item": []
+					"item": [
+						{
+							"name": "POST Enumerate Columns",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:5000/transform?operation=enumerate_columns",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "5000",
+									"path": [
+										"transform"
+									],
+									"query": [
+										{
+											"key": "operation",
+											"value": "enumerate_columns"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "POST Pivot Columns",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:5000/transform?operation=pivot_columns",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "5000",
+									"path": [
+										"transform"
+									],
+									"query": [
+										{
+											"key": "operation",
+											"value": "pivot_columns"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "POST Combine Rows",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:5000/transform?operation=combine_rows",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "5000",
+									"path": [
+										"transform"
+									],
+									"query": [
+										{
+											"key": "operation",
+											"value": "combine_rows"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "POST Merge Taxa",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:5000/transform?operation=merge_taxa",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "5000",
+									"path": [
+										"transform"
+									],
+									"query": [
+										{
+											"key": "operation",
+											"value": "merge_taxa"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Forecast",
+					"item": [
+						{
+							"name": "GET Generate Forecast",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:5000/forecast?operation=generate",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "5000",
+									"path": [
+										"forecast"
+									],
+									"query": [
+										{
+											"key": "operation",
+											"value": "generate"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET Evaluate Forecast",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:5000/forecast?operation=evaluate",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "5000",
+									"path": [
+										"forecast"
+									],
+									"query": [
+										{
+											"key": "operation",
+											"value": "evaluate"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
 				}
 			]
 		}

@@ -148,7 +148,9 @@ tact/config/*
 tact/config/parserConfig.JSON
 
 # Test files
-testing/testData
+tact/test/*
+tact/resources/worms_lut.csv
+tact/testing/testData/*
 
 # Yarn config files
 tact/UI/.yarn/
@@ -156,5 +158,3 @@ tact/UI/yarn.lock
 tact/UI/.yarnclean
 tact/UI/.pnp.js
 tact/UI/.yarnrc.yml
-tact/test/*
-tact/resources/worms_lut.csv

@@ -179,6 +179,35 @@ def transform():
         )
 
 
+@app.route("/forecast", methods=["GET"])
+def forecast():
+    operation = request.args.get("operation")
+    if operation == "generate":
+        result = controller.generate_forecast()
+        if result:
+            return make_response(
+                ({"message": "Forecast generated.", "data": result}, 200)
+            )
+        else:
+            return make_response(("Failed to generate forecast.", 404))
+    elif operation == "evaluate":
+        result = controller.evaluate_forecast()
+        if result:
+            return make_response(
+                ({"message": "Forecast evaluated.", "data": result}, 200)
+            )
+        else:
+            return make_response(("Failed to evaluate forecast.", 404))
+    else:
+        return make_response(
+            (
+                {
+                    "message": "Invalid operation, please select generate or evaluate."
+                },
+                400,
+            )
+        )
+
 import os
 
 # launch API

@@ -12,6 +12,7 @@ import tact.processing.datetime_parser as parser
 import tact.processing.quality_checker as quality_checker
 import tact.processing.xml_generator as xml_generator
 import tact.processing.taxonomic_name_matcher as taxa_matcher
+import tact.processing.forecaster as forecaster
 import tact.util.constants as constants
 import tact.util.csv_utils as csv_utils
 from tact.control.logging_controller import LoggingController as loggingController
@@ -537,6 +538,50 @@ def generate_taxonomic_preview() -> Dict:
 
     return taxa_matcher.preview_changes(input_df=input_frame, worms_lut=lut_worms, target_column=target_column)
 
+
+def generate_forecast() -> Dict:
+    forecast_config = get_settings_json("forecast")
+
+    logger.info("Generating forecast...")
+    logger.debug(
+        "Forecast args: target columns: {}".format(
+            forecast_config.get("target_data_columns")
+        )
+    )
+
+    input_frame = get_data(kwargs={"format": "dataframe"})
+
+    forecast_df = forecaster.forecast_csv(
+        input_data=input_frame,
+        horizon=forecast_config.get("horizon"),
+        date_col=forecast_config.get("date_column"),
+        value_cols=forecast_config.get("target_data_columns")
+    )
+
+    return forecast_df.to_dict()
+
+def evaluate_forecast() -> Dict:
+    forecast_config = get_settings_json("forecast")
+
+    logger.info("Evaluating forecast...")
+    logger.debug(
+        "Forecast args: target columns: {}".format(
+            forecast_config.get("target_data_columns")
+        )
+    )
+
+    input_frame = get_data(kwargs={"format": "dataframe"})
+
+    forecast_meta, combined_df = forecaster.evaluate_forecast(
+        input_data=input_frame,
+        date_col=forecast_config.get("date_column"),
+        value_cols=forecast_config.get("target_data_columns")
+    )
+
+    return {
+        "metadata": forecast_meta,
+        **combined_df.to_dict()
+    }
 
 def run():
     ap = argparse.ArgumentParser()

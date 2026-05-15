@@ -214,6 +214,10 @@ const TransformPage = () => {
                 setTransformConfig(configData);
                 setLookupUploadResult({ success: true });
                 setMsg({ text: '', type: '' });
+                // Clear the file input so the same file can be re-uploaded
+                const fileInput = document.getElementById('lookupFileInput');
+                if (fileInput) fileInput.value = '';
+                setLookupFile([]);
             } else {
                 const err = await res.json().catch(() => ({}));
                 setLookupUploadResult({ success: false });
@@ -250,8 +254,9 @@ const TransformPage = () => {
                 setLookupMergeResult({ success: true });
                 setMsg({ text: '', type: '' });
             } else {
+                const errBody = await mergeRes.json().catch(() => ({}));
                 setLookupMergeResult({ success: false });
-                setMsg({ text: 'Lookup merge failed.', type: 'error' });
+                setMsg({ text: `Lookup merge failed: ${errBody.message || mergeRes.statusText}`, type: 'error' });
             }
         } catch (err) {
             setLookupMergeResult({ success: false });

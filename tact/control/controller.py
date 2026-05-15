@@ -13,6 +13,7 @@ import tact.processing.quality_checker as quality_checker
 import tact.processing.xml_generator as xml_generator
 import tact.processing.taxonomic_name_matcher as taxa_matcher
 import tact.processing.forecaster as forecaster
+import tact.processing.lookup_merger as lookup_merger
 import tact.util.constants as constants
 import tact.util.csv_utils as csv_utils
 from tact.control.logging_controller import LoggingController as loggingController
@@ -624,8 +625,6 @@ def lookup_data() -> bool:
     Returns:
         bool: True if merge succeeded.
     """
-    import tact.processing.lookup_merger as lookup_merger
-
     transform_config = get_settings_json("transform")
     parser_config = get_settings_json("parser")
 
@@ -651,6 +650,10 @@ def lookup_data() -> bool:
         target_key=transform_config.get("target_key_column"),
         value_columns=transform_config.get("lookup_value_columns"),
     )
+
+    if merged_df is None:
+        logger.error("Merge returned None — no output written.")
+        return False
 
     csv_utils.write_out_data_frame(
         merged_df,

@@ -96,6 +96,30 @@ def upload_file():
         return make_response(({"message": "File(s) uploaded but config update failed"}, 500))
 
 
+@app.route("/upload_lookup", methods=["POST"])
+def upload_lookup_file():
+    if "file" not in request.files:
+        return make_response(({"message": "No file part"}, 400))
+
+    file = request.files.get("file")
+
+    if not file or not file.filename:
+        return make_response(({"message": "No selected file"}, 400))
+
+    session_id = "default_user"
+    upload_lookup_dir = path.join("/tmp/uploads", session_id, "lookup")
+    makedirs(upload_lookup_dir, exist_ok=True)
+
+    basename = secure_filename(path.basename(file.filename))
+    file_path = path.join(upload_lookup_dir, basename)
+    file.save(file_path)
+
+    if controller.upload_lookup_file(file_path):
+        return make_response(({"message": "Lookup file uploaded and config updated"}, 200))
+    else:
+        return make_response(({"message": "Lookup file uploaded but config update failed"}, 500))
+
+
 @app.route("/analysis")
 def analysis():
     if controller.analyze():
@@ -168,11 +192,16 @@ def transform():
             return make_response(("Taxonomic names merged.", 200))
         else:
             return make_response(("Failed to merge taxonomic names.", 404))
+    elif operation == "merge_lookup":
+        if controller.lookup_data():
+            return make_response(("Lookup merge complete.", 200))
+        else:
+            return make_response(("Lookup merge failed.", 404))
     else:
         return make_response(
             (
                 {
-                    "message": "Invalid operation, please select enumerate_columns, combine_rows, or merge_taxa."
+                    "message": "Invalid operation, please select enumerate_columns, combine_rows, merge_taxa, or merge_lookup."
                 },
                 400,
             )

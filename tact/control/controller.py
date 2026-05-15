@@ -583,6 +583,84 @@ def evaluate_forecast() -> Dict:
         **combined_df.to_dict()
     }
 
+
+def upload_lookup_file(file_path: str) -> bool:
+    """Reads column headers from the uploaded lookup CSV and persists the
+    file path and field names into the transform config.
+
+    Args:
+        file_path (str): Absolute path to the uploaded lookup CSV file.
+
+    Returns:
+        bool: True if config was updated successfully.
+    """
+    logger.info(f"Processing uploaded lookup file: {file_path}")
+    try:
+        # Read only the header row to extract column names
+        lookup_df = pd.read_csv(file_path, nrows=0)
+        field_names = list(lookup_df.columns)
+        logger.debug(f"Lookup file columns: {field_names}")
+
+        return update_settings("transform", {
+            "lookup_file_path": file_path,
+            "lookup_field_names": field_names,
+        })
+    except Exception as e:
+        logger.error(f"Failed to process lookup file: {e}")
+        return False
+
+
+def lookup_data() -> bool:
+    """Reads lookup/merge configuration from the transform config and
+    delegates to the processing module.
+
+    Expected transform config keys:
+        lookup_file_path (str): Path to the external lookup CSV.
+        lookup_key_column (str): Key column in the lookup table.
+        target_key_column (str): Key column in the target dataset.
+        lookup_value_columns (list[str]): Columns to copy from lookup.
+        lookup_output_path (str): Path to write merged output.
+
+    Returns:
+        bool: True if merge succeeded.
+    """
+    import tact.processing.lookup_merger as lookup_merger
+
+    transform_config = get_settings_json("transform")
+    parser_config = get_settings_json("parser")
+
+    logger.info("Running lookup merge...")
+    logger.debug(f"Lookup file: {transform_config.get('lookup_file_path')}")
+    logger.debug(f"Lookup key: {transform_config.get('lookup_key_column')}")
+    logger.debug(f"Target key: {transform_config.get('target_key_column')}")
+    logger.debug(f"Value columns: {transform_config.get('lookup_value_columns')}")
+
+    target_df = get_data(kwargs={"format": "dataframe"})
+
+    try:
+        #TODO:Can we get this using get_data?
+        lookup_df = pd.read_csv(transform_config.get("lookup_file_path"))
+    except Exception as e:
+        logger.error(f"Failed to read lookup file: {e}")
+        return False
+
+    merged_df = lookup_merger.merge_matched_records(
+        target_df=target_df,
+        lookup_df=lookup_df,
+        lookup_key=transform_config.get("lookup_key_column"),
+        target_key=transform_config.get("target_key_column"),
+        value_columns=transform_config.get("lookup_value_columns"),
+    )
+
+    csv_utils.write_out_data_frame(
+        merged_df,
+        transform_config.get("lookup_output_path"),
+        parser_config.get("inputFileEncoding", "utf-8-sig"),
+    )
+
+    return True
+
+
 def run():
     ap = argparse.ArgumentParser()
     ap.add_argument(

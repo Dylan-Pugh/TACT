@@ -206,7 +206,7 @@ const TransformPage = () => {
         try {
             const formData = new FormData();
             formData.append('file', lookupFile[0]);
-            const res = await fetch('/upload_lookup', { method: 'POST', body: formData });
+            const res = await fetch('/upload?type=lookup', { method: 'POST', body: formData });
             if (res.ok) {
                 // Refresh transform config to get updated lookup_file_path & lookup_field_names
                 const configRes = await fetch('/config/transform');
@@ -652,7 +652,7 @@ const TransformPage = () => {
                 </div>
 
                 <button className="primary" onClick={handleMergeLookup} disabled={isMergingLookup}>
-                    {isMergingLookup ? 'Merging...' : 'Merge Lookup!'}
+                    {isMergingLookup ? 'Merging...' : 'Merge Lookup'}
                 </button>
 
                 {isMergingLookup && (
@@ -662,7 +662,7 @@ const TransformPage = () => {
                 )}
                 {lookupMergeResult && lookupMergeResult.success && (
                     <div className="status-message success" style={{ marginTop: '10px' }}>
-                        ✅ Success — lookup merged!
+                        ✅ Success — lookup merged.
                     </div>
                 )}
                 {lookupMergeResult && !lookupMergeResult.success && (

@@ -119,6 +119,8 @@ def get_data(kwargs: Dict = {}) -> Union[pd.DataFrame, str, Dict]:
                 file_path = config.get("inputPath")
             elif request_type == "transform":
                 file_path = config.get("transform_output_path")
+            elif request_type == "lookup":
+                file_path = config.get("lookup_path")
     except ValueError as e:
         logger.error(
             f"Unknown request type: {request_type}: {e}"
@@ -126,33 +128,35 @@ def get_data(kwargs: Dict = {}) -> Union[pd.DataFrame, str, Dict]:
 
 
     file_path = Path(file_path)
-    if file_path.is_dir():
-        logger.info(f"Input path is directory: {file_path}")
-        files = [f for f in file_path.iterdir() if not list(f.name)[0] == "." and f.is_file()]
+    #TODO: it's extremely unclear to me why this chunk exisits- why update parser config here?
+    if request_type != "lookup":
+        if file_path.is_dir():
+            logger.info(f"Input path is directory: {file_path}")
+            files = [f for f in file_path.iterdir() if not list(f.name)[0] == "." and f.is_file()]
 
-        logger.info(f"Found files: {files}")
-        logger.info("First file will be used for config.")
-        
-        file_path = files[0]
-        
-        update_settings(
-            config_type="parser",
-            json_to_apply={
-                "pathForPreview": str(file_path),
-                "isDirectory": True,
-                "targetFiles": [str(path) for path in files],
-                }
-            )
-    else:
-        update_settings(
-            config_type="parser",
-            json_to_apply={
-                "pathForPreview": str(file_path),
-                "isDirectory": False,
-                "concatFiles": False,
-                "targetFiles": None,
-                }
-            )
+            logger.info(f"Found files: {files}")
+            logger.info("First file will be used for config.")
+            
+            file_path = files[0]
+            
+            update_settings(
+                config_type="parser",
+                json_to_apply={
+                    "pathForPreview": str(file_path),
+                    "isDirectory": True,
+                    "targetFiles": [str(path) for path in files],
+                    }
+                )
+        else:
+            update_settings(
+                config_type="parser",
+                json_to_apply={
+                    "pathForPreview": str(file_path),
+                    "isDirectory": False,
+                    "concatFiles": False,
+                    "targetFiles": None,
+                    }
+                )
         
     if file_path.suffix == ".csv":
 
@@ -584,34 +588,21 @@ def evaluate_forecast() -> Dict:
         **combined_df.to_dict()
     }
 
-
-def upload_lookup_file(file_path: str) -> bool:
-    """Reads column headers from the uploaded lookup CSV and persists the
-    file path and field names into the transform config.
-
-    Args:
-        file_path (str): Absolute path to the uploaded lookup CSV file.
-
-    Returns:
-        bool: True if config was updated successfully.
-    """
-    logger.info(f"Processing uploaded lookup file: {file_path}")
+#TODO - this exists purely to update one field in config, can it be incorporated elsewhere?
+def update_lookup_config() -> None:
+    """Reads column headers from a lookup CSV and updates the transform config."""
     try:
-        # Read only the header row to extract column names
-        lookup_df = pd.read_csv(file_path, nrows=0)
+        lookup_df = get_data(kwargs={"format": "dataframe", "request_type": "lookup"})
         field_names = list(lookup_df.columns)
-        logger.debug(f"Lookup file columns: {field_names}")
-
-        return update_settings("transform", {
-            "lookup_file_path": file_path,
-            "lookup_field_names": field_names,
-        })
     except Exception as e:
-        logger.error(f"Failed to process lookup file: {e}")
-        return False
+        logger.error(f"Failed to read lookup file columns: {e}")
+        field_names = []
+    update_settings("transform", {
+        "lookup_field_names": field_names,
+    })
 
 
-def lookup_data() -> bool:
+def merge_lookup_data() -> bool:
     """Reads lookup/merge configuration from the transform config and
     delegates to the processing module.
 
@@ -637,8 +628,7 @@ def lookup_data() -> bool:
     target_df = get_data(kwargs={"format": "dataframe"})
 
     try:
-        #TODO:Can we get this using get_data?
-        lookup_df = pd.read_csv(transform_config.get("lookup_file_path"))
+        lookup_df = get_data(kwargs={"format": "dataframe", "request_type": "lookup"})
     except Exception as e:
         logger.error(f"Failed to read lookup file: {e}")
         return False

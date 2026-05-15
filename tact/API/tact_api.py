@@ -61,7 +61,13 @@ def upload_file():
     # Create a unique directory for current session
     # For future multi-user support, replace with the actual session UUID
     session_id = "default_user"
-    upload_batch_dir = path.join("/tmp/uploads", session_id)
+
+    upload_type = request.args.get("type", "parser")
+
+    if upload_type == "lookup":
+        upload_batch_dir = path.join("/tmp/uploads/lookup", session_id)
+    else:
+        upload_batch_dir = path.join("/tmp/uploads", session_id)
     
     # Wipe the user's directory to prevent endless file accumulation
     if path.exists(upload_batch_dir):
@@ -85,39 +91,23 @@ def upload_file():
     is_directory = len(saved_files) > 1
     input_path = upload_batch_dir if is_directory else saved_files[0]
     path_for_preview = saved_files[0]
+
+    if upload_type == "lookup":
+        success = controller.update_settings("transform", {
+            "lookup_path": input_path,
+        })
+        controller.update_lookup_config()
+    else:
+        success = controller.update_settings("parser", {
+            "inputPath": input_path, 
+            "pathForPreview": path_for_preview, 
+            "isDirectory": is_directory
+        })
     
-    if controller.update_settings("parser", {
-        "inputPath": input_path, 
-        "pathForPreview": path_for_preview, 
-        "isDirectory": is_directory
-    }):
+    if success:
         return make_response(({"message": "File(s) uploaded and config updated"}, 200))
     else:
         return make_response(({"message": "File(s) uploaded but config update failed"}, 500))
-
-
-@app.route("/upload_lookup", methods=["POST"])
-def upload_lookup_file():
-    if "file" not in request.files:
-        return make_response(({"message": "No file part"}, 400))
-
-    file = request.files.get("file")
-
-    if not file or not file.filename:
-        return make_response(({"message": "No selected file"}, 400))
-
-    session_id = "default_user"
-    upload_lookup_dir = path.join("/tmp/uploads", session_id, "lookup")
-    makedirs(upload_lookup_dir, exist_ok=True)
-
-    basename = secure_filename(path.basename(file.filename))
-    file_path = path.join(upload_lookup_dir, basename)
-    file.save(file_path)
-
-    if controller.upload_lookup_file(file_path):
-        return make_response(({"message": "Lookup file uploaded and config updated"}, 200))
-    else:
-        return make_response(({"message": "Lookup file uploaded but config update failed"}, 500))
 
 
 @app.route("/analysis")
@@ -193,7 +183,7 @@ def transform():
         else:
             return make_response(("Failed to merge taxonomic names.", 404))
     elif operation == "merge_lookup":
-        if controller.lookup_data():
+        if controller.merge_lookup_data():
             return make_response(("Lookup merge complete.", 200))
         else:
             return make_response(("Lookup merge failed.", 404))

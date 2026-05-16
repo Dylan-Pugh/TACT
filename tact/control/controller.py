@@ -120,7 +120,7 @@ def get_data(kwargs: Dict = {}) -> Union[pd.DataFrame, str, Dict]:
             elif request_type == "transform":
                 file_path = config.get("transform_output_path")
             elif request_type == "lookup":
-                file_path = config.get("lookup_path")
+                file_path = config.get("lookup_file_path")
     except ValueError as e:
         logger.error(
             f"Unknown request type: {request_type}: {e}"

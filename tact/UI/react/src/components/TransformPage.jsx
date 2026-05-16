@@ -561,8 +561,7 @@ const TransformPage = () => {
                 <h3>Lookup Merge</h3>
                 <p style={{ marginBottom: '1rem' }}>
                     Join an external lookup table to the active dataset. Rows are matched
-                    on a key column; you can copy selected columns or the entire lookup row
-                    into the target dataset.
+                    on a key column.
                 </p>
 
                 {/* Step 1: Upload lookup file */}

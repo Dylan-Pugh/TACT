@@ -61,7 +61,13 @@ def upload_file():
     # Create a unique directory for current session
     # For future multi-user support, replace with the actual session UUID
     session_id = "default_user"
-    upload_batch_dir = path.join("/tmp/uploads", session_id)
+
+    upload_type = request.args.get("type", "parser")
+
+    if upload_type == "lookup":
+        upload_batch_dir = path.join("/tmp/uploads/lookup", session_id)
+    else:
+        upload_batch_dir = path.join("/tmp/uploads", session_id)
     
     # Wipe the user's directory to prevent endless file accumulation
     if path.exists(upload_batch_dir):
@@ -85,12 +91,20 @@ def upload_file():
     is_directory = len(saved_files) > 1
     input_path = upload_batch_dir if is_directory else saved_files[0]
     path_for_preview = saved_files[0]
+
+    if upload_type == "lookup":
+        success = controller.update_settings("transform", {
+            "lookup_path": input_path,
+        })
+        controller.update_lookup_config()
+    else:
+        success = controller.update_settings("parser", {
+            "inputPath": input_path, 
+            "pathForPreview": path_for_preview, 
+            "isDirectory": is_directory
+        })
     
-    if controller.update_settings("parser", {
-        "inputPath": input_path, 
-        "pathForPreview": path_for_preview, 
-        "isDirectory": is_directory
-    }):
+    if success:
         return make_response(({"message": "File(s) uploaded and config updated"}, 200))
     else:
         return make_response(({"message": "File(s) uploaded but config update failed"}, 500))
@@ -168,11 +182,16 @@ def transform():
             return make_response(("Taxonomic names merged.", 200))
         else:
             return make_response(("Failed to merge taxonomic names.", 404))
+    elif operation == "merge_lookup":
+        if controller.merge_lookup_data():
+            return make_response(("Lookup merge complete.", 200))
+        else:
+            return make_response(("Lookup merge failed.", 404))
     else:
         return make_response(
             (
                 {
-                    "message": "Invalid operation, please select enumerate_columns, combine_rows, or merge_taxa."
+                    "message": "Invalid operation, please select enumerate_columns, combine_rows, merge_taxa, or merge_lookup."
                 },
                 400,
             )

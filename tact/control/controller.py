@@ -13,6 +13,7 @@ import tact.processing.quality_checker as quality_checker
 import tact.processing.xml_generator as xml_generator
 import tact.processing.taxonomic_name_matcher as taxa_matcher
 import tact.processing.forecaster as forecaster
+import tact.processing.lookup_merger as lookup_merger
 import tact.util.constants as constants
 import tact.util.csv_utils as csv_utils
 from tact.control.logging_controller import LoggingController as loggingController
@@ -118,6 +119,8 @@ def get_data(kwargs: Dict = {}) -> Union[pd.DataFrame, str, Dict]:
                 file_path = config.get("inputPath")
             elif request_type == "transform":
                 file_path = config.get("transform_output_path")
+            elif request_type == "lookup":
+                file_path = config.get("lookup_file_path")
     except ValueError as e:
         logger.error(
             f"Unknown request type: {request_type}: {e}"
@@ -125,33 +128,35 @@ def get_data(kwargs: Dict = {}) -> Union[pd.DataFrame, str, Dict]:
 
 
     file_path = Path(file_path)
-    if file_path.is_dir():
-        logger.info(f"Input path is directory: {file_path}")
-        files = [f for f in file_path.iterdir() if not list(f.name)[0] == "." and f.is_file()]
+    #TODO: it's extremely unclear to me why this chunk exisits- why update parser config here?
+    if request_type != "lookup":
+        if file_path.is_dir():
+            logger.info(f"Input path is directory: {file_path}")
+            files = [f for f in file_path.iterdir() if not list(f.name)[0] == "." and f.is_file()]
 
-        logger.info(f"Found files: {files}")
-        logger.info("First file will be used for config.")
-        
-        file_path = files[0]
-        
-        update_settings(
-            config_type="parser",
-            json_to_apply={
-                "pathForPreview": str(file_path),
-                "isDirectory": True,
-                "targetFiles": [str(path) for path in files],
-                }
-            )
-    else:
-        update_settings(
-            config_type="parser",
-            json_to_apply={
-                "pathForPreview": str(file_path),
-                "isDirectory": False,
-                "concatFiles": False,
-                "targetFiles": None,
-                }
-            )
+            logger.info(f"Found files: {files}")
+            logger.info("First file will be used for config.")
+            
+            file_path = files[0]
+            
+            update_settings(
+                config_type="parser",
+                json_to_apply={
+                    "pathForPreview": str(file_path),
+                    "isDirectory": True,
+                    "targetFiles": [str(path) for path in files],
+                    }
+                )
+        else:
+            update_settings(
+                config_type="parser",
+                json_to_apply={
+                    "pathForPreview": str(file_path),
+                    "isDirectory": False,
+                    "concatFiles": False,
+                    "targetFiles": None,
+                    }
+                )
         
     if file_path.suffix == ".csv":
 
@@ -582,6 +587,72 @@ def evaluate_forecast() -> Dict:
         "metadata": forecast_meta,
         **combined_df.to_dict()
     }
+
+#TODO - this exists purely to update one field in config, can it be incorporated elsewhere?
+def update_lookup_config() -> None:
+    """Reads column headers from a lookup CSV and updates the transform config."""
+    try:
+        lookup_df = get_data(kwargs={"format": "dataframe", "request_type": "lookup"})
+        field_names = list(lookup_df.columns)
+    except Exception as e:
+        logger.error(f"Failed to read lookup file columns: {e}")
+        field_names = []
+    update_settings("transform", {
+        "lookup_field_names": field_names,
+    })
+
+
+def merge_lookup_data() -> bool:
+    """Reads lookup/merge configuration from the transform config and
+    delegates to the processing module.
+
+    Expected transform config keys:
+        lookup_file_path (str): Path to the external lookup CSV.
+        lookup_key_column (str): Key column in the lookup table.
+        target_key_column (str): Key column in the target dataset.
+        lookup_value_columns (list[str]): Columns to copy from lookup.
+        lookup_output_path (str): Path to write merged output.
+
+    Returns:
+        bool: True if merge succeeded.
+    """
+    transform_config = get_settings_json("transform")
+    parser_config = get_settings_json("parser")
+
+    logger.info("Running lookup merge...")
+    logger.debug(f"Lookup file: {transform_config.get('lookup_file_path')}")
+    logger.debug(f"Lookup key: {transform_config.get('lookup_key_column')}")
+    logger.debug(f"Target key: {transform_config.get('target_key_column')}")
+    logger.debug(f"Value columns: {transform_config.get('lookup_value_columns')}")
+
+    target_df = get_data(kwargs={"format": "dataframe"})
+
+    try:
+        lookup_df = get_data(kwargs={"format": "dataframe", "request_type": "lookup"})
+    except Exception as e:
+        logger.error(f"Failed to read lookup file: {e}")
+        return False
+
+    merged_df = lookup_merger.merge_matched_records(
+        target_df=target_df,
+        lookup_df=lookup_df,
+        lookup_key=transform_config.get("lookup_key_column"),
+        target_key=transform_config.get("target_key_column"),
+        value_columns=transform_config.get("lookup_value_columns"),
+    )
+
+    if merged_df is None:
+        logger.error("Merge returned None — no output written.")
+        return False
+
+    csv_utils.write_out_data_frame(
+        merged_df,
+        transform_config.get("lookup_output_path"),
+        parser_config.get("inputFileEncoding", "utf-8-sig"),
+    )
+
+    return True
+
 
 def run():
     ap = argparse.ArgumentParser()

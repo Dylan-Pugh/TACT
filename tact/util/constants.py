@@ -1,4 +1,4 @@
-CONFIG_TYPES = {"parser": "parser", "QA": "QA", "log": "log"}
+CONFIG_TYPES = {"parser": "parser", "transform": "transform", "QA": "QA", "log": "log"}
 CONFIG_FILE_PATHS = {
     "parser": "tact/config/parserConfig.JSON",
     "LOG_CONFIG_PATH": "tact/config/logConfig.JSON",
@@ -6,6 +6,8 @@ CONFIG_FILE_PATHS = {
     "XML_CONFIG_PATH": "tact/config/generateDatasetsXmlConfig.JSON",
     "IOOS_QC_CONFIG_PATH": "tact/config/qc_configs/qc_config.json",
     "transform": "tact/config/transformConfig.JSON",
+    "forecast": "tact/config/forecastConfig.JSON",
+    "lookup": "tact/config/transformConfig.JSON",
 }
 PARSER_CONFIG_FILE_PATH = (
     "tact/config/parserConfig.JSON"

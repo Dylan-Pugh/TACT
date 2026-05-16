@@ -82,6 +82,11 @@ const TransformPage = () => {
         fetchData();
     }, []);
 
+    // ─── Transform Config Helper (mirrors CleanPage pattern) ─────────────────
+    const handleTransformConfigChange = (key, value) => {
+        setTransformConfig(prev => ({ ...prev, [key]: value }));
+    };
+
     const handleRegexChange = (val) => {
         setRegexPattern(val);
         if (val) {
@@ -176,6 +181,88 @@ const TransformPage = () => {
             setMsg({ text: `Error: ${err.message}`, type: 'error' });
         } finally {
             setIsCombining(false);
+        }
+    };
+
+    // ─── Lookup Upload & Merge ─────────────────────────────────────────────────
+    const [lookupFile, setLookupFile] = useState([]);
+    const [isUploadingLookup, setIsUploadingLookup] = useState(false);
+    const [isMergingLookup, setIsMergingLookup] = useState(false);
+    const [lookupUploadResult, setLookupUploadResult] = useState(null);
+    const [lookupMergeResult, setLookupMergeResult] = useState(null);
+
+    const handleLookupFileChange = (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            setLookupFile(Array.from(e.target.files));
+            setLookupUploadResult(null);
+        }
+    };
+
+    const handleLookupUpload = async () => {
+        if (lookupFile.length === 0) return;
+        setIsUploadingLookup(true);
+        setLookupUploadResult(null);
+        setMsg({ text: 'Uploading lookup file...', type: 'info' });
+        try {
+            const formData = new FormData();
+            formData.append('file', lookupFile[0]);
+            const res = await fetch('/upload?type=lookup', { method: 'POST', body: formData });
+            if (res.ok) {
+                // Refresh transform config to get updated lookup_file_path & lookup_field_names
+                const configRes = await fetch('/config/transform');
+                const configData = await configRes.json();
+                setTransformConfig(configData);
+                setLookupUploadResult({ success: true });
+                setMsg({ text: '', type: '' });
+                // Clear the file input so the same file can be re-uploaded
+                const fileInput = document.getElementById('lookupFileInput');
+                if (fileInput) fileInput.value = '';
+                setLookupFile([]);
+            } else {
+                const err = await res.json().catch(() => ({}));
+                setLookupUploadResult({ success: false });
+                setMsg({ text: `Upload failed: ${err.message || res.statusText}`, type: 'error' });
+            }
+        } catch (err) {
+            setLookupUploadResult({ success: false });
+            setMsg({ text: `Error: ${err.message}`, type: 'error' });
+        } finally {
+            setIsUploadingLookup(false);
+        }
+    };
+
+    const handleMergeLookup = async () => {
+        setIsMergingLookup(true);
+        setLookupMergeResult(null);
+        setMsg({ text: 'Saving config and merging...', type: 'info' });
+        try {
+            const outgoingConfig = {
+                lookup_key_column: transformConfig?.lookup_key_column || '',
+                target_key_column: transformConfig?.target_key_column || '',
+                lookup_value_columns: transformConfig?.lookup_value_columns || [],
+                lookup_output_path: transformConfig?.lookup_output_path || '',
+            };
+            const configRes = await fetch('/config/transform', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(outgoingConfig),
+            });
+            if (!configRes.ok) throw new Error('Config update failed');
+
+            const mergeRes = await fetch('/transform?operation=merge_lookup', { method: 'POST' });
+            if (mergeRes.ok) {
+                setLookupMergeResult({ success: true });
+                setMsg({ text: '', type: '' });
+            } else {
+                const errBody = await mergeRes.json().catch(() => ({}));
+                setLookupMergeResult({ success: false });
+                setMsg({ text: `Lookup merge failed: ${errBody.message || mergeRes.statusText}`, type: 'error' });
+            }
+        } catch (err) {
+            setLookupMergeResult({ success: false });
+            setMsg({ text: `Error: ${err.message}`, type: 'error' });
+        } finally {
+            setIsMergingLookup(false);
         }
     };
 
@@ -465,6 +552,121 @@ const TransformPage = () => {
                 {combineResult && !combineResult.success && (
                     <div className="status-message error" style={{ marginTop: '10px' }}>
                         ❌ Failed to combine rows. Check the API logs for details.
+                    </div>
+                )}
+            </div>
+
+            {/* ── Section 3: Lookup Merge ───────────────────────────────────── */}
+            <div className="section config-form-container">
+                <h3>Lookup Merge</h3>
+                <p style={{ marginBottom: '1rem' }}>
+                    Join an external lookup table to the active dataset. Rows are matched
+                    on a key column.
+                </p>
+
+                {/* Step 1: Upload lookup file */}
+                <div className="form-group">
+                    <label>Step 1 — Upload Lookup Table (CSV)</label>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <input
+                            id="lookupFileInput"
+                            type="file"
+                            accept=".csv"
+                            onChange={handleLookupFileChange}
+                        />
+                        <button
+                            className="secondary"
+                            onClick={handleLookupUpload}
+                            disabled={isUploadingLookup || lookupFile.length === 0}
+                        >
+                            {isUploadingLookup ? 'Uploading...' : 'Upload'}
+                        </button>
+                    </div>
+                    {lookupUploadResult && lookupUploadResult.success && (
+                        <div className="status-message success" style={{ marginTop: '6px' }}>
+                            ✅ Lookup file uploaded — columns loaded.
+                        </div>
+                    )}
+                    {lookupUploadResult && !lookupUploadResult.success && (
+                        <div className="status-message error" style={{ marginTop: '6px' }}>
+                            ❌ Upload failed. Check logs for details.
+                        </div>
+                    )}
+                    {transformConfig?.lookup_file_path && (
+                        <div style={{ marginTop: '6px', fontSize: '0.85em', color: '#888' }}>
+                            Active lookup file: <code>{transformConfig.lookup_file_path}</code>
+                        </div>
+                    )}
+                </div>
+
+                {/* Step 2: Configure keys */}
+                <div className="responsive-grid grid-2-col">
+                    <div className="form-group">
+                        <label>Step 2a — Key Column in Lookup Table</label>
+                        <select
+                            value={transformConfig?.lookup_key_column || ''}
+                            onChange={e => handleTransformConfigChange('lookup_key_column', e.target.value)}
+                        >
+                            <option value="">-- Select --</option>
+                            {(transformConfig?.lookup_field_names || []).map(c => (
+                                <option key={c} value={c}>{c}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="form-group">
+                        <label>Step 2b — Key Column in Target Dataset</label>
+                        <select
+                            value={transformConfig?.target_key_column || ''}
+                            onChange={e => handleTransformConfigChange('target_key_column', e.target.value)}
+                        >
+                            <option value="">-- Select --</option>
+                            {dataColumns.map(c => (
+                                <option key={c} value={c}>{c}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                {/* Step 3: Columns to copy */}
+                <div className="form-group">
+                    <label>Step 3 — Columns to Copy from Lookup Table</label>
+                    <MultiSelect
+                        options={transformConfig?.lookup_field_names || []}
+                        selected={transformConfig?.lookup_value_columns || []}
+                        onChange={selected => handleTransformConfigChange('lookup_value_columns', selected)}
+                        onSelectAll={() => handleTransformConfigChange('lookup_value_columns', [...(transformConfig?.lookup_field_names || [])])}
+                        emptyMessage="Upload a lookup file first to populate column list."
+                    />
+                </div>
+
+                {/* Output path */}
+                <div className="form-group">
+                    <label>Output Path</label>
+                    <input
+                        type="text"
+                        value={transformConfig?.lookup_output_path || ''}
+                        placeholder="path/to/merged_output.csv"
+                        onChange={e => handleTransformConfigChange('lookup_output_path', e.target.value)}
+                    />
+                </div>
+
+                <button className="primary" onClick={handleMergeLookup} disabled={isMergingLookup}>
+                    {isMergingLookup ? 'Merging...' : 'Merge Lookup'}
+                </button>
+
+                {isMergingLookup && (
+                    <div className="status-message info" style={{ marginTop: '10px' }}>
+                        ⏳ Merging lookup table, please wait...
+                    </div>
+                )}
+                {lookupMergeResult && lookupMergeResult.success && (
+                    <div className="status-message success" style={{ marginTop: '10px' }}>
+                        ✅ Success — lookup merged.
+                    </div>
+                )}
+                {lookupMergeResult && !lookupMergeResult.success && (
+                    <div className="status-message error" style={{ marginTop: '10px' }}>
+                        ❌ Merge failed. Check the API logs for details.
                     </div>
                 )}
             </div>

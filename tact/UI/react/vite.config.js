@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '^/(config|analysis|preview|process|data|transform|upload)': {
+      '^/(config|analysis|preview|process|data|transform|upload|forecast)': {
         target: 'http://127.0.0.1:5001',
         changeOrigin: true
       }

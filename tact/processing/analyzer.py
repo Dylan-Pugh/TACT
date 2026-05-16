@@ -118,7 +118,7 @@ def process_file(input_path, input_encoding):
     config["dateFields"] = find_date_components(field_names)
     config["timeField"] = find_time_field(field_names)
 
-    # THIS SHOULD NOT BE WRITING SETTINGS DIRECTLY :(
+    # TODO THIS SHOULD NOT BE WRITING SETTINGS DIRECTLY :(
     # USE THE API or update_settings in controller
     # write out settings file
     with open(constants.CONFIG_FILE_PATHS["parser"], "w") as outfile:

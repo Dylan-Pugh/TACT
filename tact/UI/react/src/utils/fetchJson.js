@@ -5,11 +5,18 @@
 export async function fetchJson(url, options) {
     const res = await fetch(url, options);
     const text = await res.text();
+    if (!text || !text.trim()) {
+        return { ok: res.ok, status: res.status, data: null };
+    }
     // Replace bare NaN / Infinity tokens with null before parsing
     const sanitized = text
         .replace(/:\s*NaN\b/g, ': null')
         .replace(/:\s*Infinity\b/g, ': null')
         .replace(/:\s*-Infinity\b/g, ': null');
-    const data = JSON.parse(sanitized);
-    return { ok: res.ok, status: res.status, data };
+    try {
+        const data = JSON.parse(sanitized);
+        return { ok: res.ok, status: res.status, data };
+    } catch {
+        return { ok: false, status: res.status, data: { message: `Server returned non-JSON response (${res.status}).` } };
+    }
 }

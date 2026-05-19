@@ -4,6 +4,7 @@ import CleanPage from './components/CleanPage'
 import TransformPage from './components/TransformPage'
 import BioDataUtilsPage from './components/BioDataUtilsPage'
 import ForecastPage from './components/ForecastPage'
+import CompareDatasetPage from './components/CompareDatasetPage'
 import './App.css'
 
 function App() {
@@ -49,6 +50,12 @@ function App() {
           >
             Forecast
           </button>
+          <button
+            className={currentView === 'compare' ? 'nav-btn active' : 'nav-btn'}
+            onClick={() => setCurrentView('compare')}
+          >
+            Compare
+          </button>
         </nav>
       </header>
       <main>
@@ -57,6 +64,7 @@ function App() {
         {currentView === 'transform' && <TransformPage />}
         {currentView === 'bioUtils' && <BioDataUtilsPage />}
         {currentView === 'forecast' && <ForecastPage />}
+        {currentView === 'compare' && <CompareDatasetPage />}
       </main>
     </>
   )

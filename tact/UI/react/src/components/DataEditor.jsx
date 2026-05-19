@@ -1,6 +1,6 @@
 import React from 'react';
 
-const DataEditor = ({ data, columns = [], onChange }) => {
+const DataEditor = ({ data, columns = [], keyOptions = null, onChange }) => {
     // If it's an array of objects
     if (Array.isArray(data)) {
         return (
@@ -64,24 +64,42 @@ const DataEditor = ({ data, columns = [], onChange }) => {
                         {keys.map((k, i) => (
                             <tr key={i}>
                                 <td>
-                                    {/* We use defaultValue for key to avoid losing focus while typing,
-                                        but a proper editable key is tricky. 
-                                        Let's keep it simple with controlled input but handle blur/change carefully. */}
-                                    <input
-                                        type="text"
-                                        defaultValue={k}
-                                        onBlur={(e) => {
-                                            const newKey = e.target.value;
-                                            if (newKey !== k) {
-                                                const newData = { ...data };
-                                                const val = newData[k];
-                                                delete newData[k];
-                                                newData[newKey] = val;
-                                                onChange(newData);
-                                            }
-                                        }}
-                                        style={{ width: '100%', minWidth: 0, boxSizing: 'border-box' }}
-                                    />
+                                    {keyOptions ? (
+                                        <select
+                                            value={k}
+                                            onChange={(e) => {
+                                                const newKey = e.target.value;
+                                                if (newKey !== k) {
+                                                    const newData = { ...data };
+                                                    const val = newData[k];
+                                                    delete newData[k];
+                                                    newData[newKey] = val;
+                                                    onChange(newData);
+                                                }
+                                            }}
+                                            style={{ width: '100%', minWidth: 0, boxSizing: 'border-box' }}
+                                        >
+                                            {keyOptions.map(opt => (
+                                                <option key={opt} value={opt}>{opt}</option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <input
+                                            type="text"
+                                            defaultValue={k}
+                                            onBlur={(e) => {
+                                                const newKey = e.target.value;
+                                                if (newKey !== k) {
+                                                    const newData = { ...data };
+                                                    const val = newData[k];
+                                                    delete newData[k];
+                                                    newData[newKey] = val;
+                                                    onChange(newData);
+                                                }
+                                            }}
+                                            style={{ width: '100%', minWidth: 0, boxSizing: 'border-box' }}
+                                        />
+                                    )}
                                 </td>
                                 <td>
                                     <input
@@ -105,7 +123,10 @@ const DataEditor = ({ data, columns = [], onChange }) => {
                     </tbody>
                 </table>
                 <button type="button" onClick={() => {
-                    onChange({ ...data, [`new_key_${keys.length}`]: '' });
+                    const newKey = keyOptions
+                        ? (keyOptions.find(o => !(o in data)) ?? keyOptions[0])
+                        : `new_key_${keys.length}`;
+                    onChange({ ...data, [newKey]: '' });
                 }}>Add Item</button>
             </div>
         );

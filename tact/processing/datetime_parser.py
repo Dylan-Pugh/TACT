@@ -53,7 +53,7 @@ def create_iso_time(csv_row, date_fields, time_field):
 
         date_time_string = date_string + "T" + time_string
 
-        parsed_datetime = dateutil.parser.parse(date_time_string, default=default_date)
+        parsed_datetime = dateutil.parser.parse(date_time_string, dayfirst=True, default=default_date)
 
         return parsed_datetime.isoformat()
 

@@ -8,6 +8,16 @@ CONFIG_FILE_PATHS = {
     "transform": "tact/config/transformConfig.JSON",
     "forecast": "tact/config/forecastConfig.JSON",
     "lookup": "tact/config/transformConfig.JSON",
+    "comparison": "tact/config/comparisonConfig.JSON",
+}
+
+# Maps each request_type to the key inside its config file that holds the data file path.
+# Must be updated alongside CONFIG_FILE_PATHS whenever a new request type is added.
+CONFIG_FILE_PATH_KEYS = {
+    "parser":     "inputPath",
+    "transform":  "transform_output_path",
+    "lookup":     "lookup_path",
+    "comparison": "dataset2_path",
 }
 PARSER_CONFIG_FILE_PATH = (
     "tact/config/parserConfig.JSON"

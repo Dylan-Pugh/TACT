@@ -8,7 +8,7 @@ import tact.control.controller as controller
 app = Flask(__name__)
 app.config["JSON_SORT_KEYS"] = False
 # 16mb max upload size
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1000 * 1000
+app.config['MAX_CONTENT_LENGTH'] = 300 * 1000 * 1000
 
 
 @app.route("/config/<string:config_type>", methods=["GET", "PATCH"])
@@ -69,6 +69,8 @@ def upload_file():
 
     if upload_type == "lookup":
         upload_batch_dir = path.join("/tmp/uploads/lookup", session_id)
+    elif upload_type == "comparison":
+        upload_batch_dir = path.join("/tmp/uploads/comparison", session_id)
     else:
         upload_batch_dir = path.join("/tmp/uploads", session_id)
     
@@ -99,11 +101,16 @@ def upload_file():
         success = controller.update_settings("transform", {
             "lookup_path": input_path,
         })
-        controller.update_lookup_config()
+        controller.update_file_field_names("lookup", "lookup_field_names")
+    elif upload_type == "comparison":
+        success = controller.update_settings("comparison", {
+            "dataset2_path": input_path,
+        })
+        controller.update_file_field_names("comparison", "dataset2_field_names")
     else:
         success = controller.update_settings("parser", {
-            "inputPath": input_path, 
-            "pathForPreview": path_for_preview, 
+            "inputPath": input_path,
+            "pathForPreview": path_for_preview,
             "isDirectory": is_directory
         })
     
@@ -229,6 +236,21 @@ def forecast():
                 400,
             )
         )
+
+@app.route("/compare", methods=["POST"])
+def compare():
+    import traceback
+    try:
+        result = controller.run_comparison()
+    except Exception:
+        import logging
+        logging.getLogger(__name__).error("Unhandled exception in /compare:\n" + traceback.format_exc())
+        return make_response(({"message": "Comparison failed with an unhandled exception. See server logs."}, 500))
+    if result:
+        return make_response(({"message": "Comparison complete.", "data": result}, 200))
+    else:
+        return make_response(({"message": "Comparison failed."}, 404))
+
 
 import os
 

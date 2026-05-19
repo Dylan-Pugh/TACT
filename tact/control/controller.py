@@ -14,6 +14,7 @@ import tact.processing.xml_generator as xml_generator
 import tact.processing.taxonomic_name_matcher as taxa_matcher
 import tact.processing.forecaster as forecaster
 import tact.processing.lookup_merger as lookup_merger
+import tact.processing.dataset_comparator as dataset_comparator
 import tact.util.constants as constants
 import tact.util.csv_utils as csv_utils
 from tact.control.logging_controller import LoggingController as loggingController
@@ -115,21 +116,19 @@ def get_data(kwargs: Dict = {}) -> Union[pd.DataFrame, str, Dict]:
     try:
         with open(constants.CONFIG_FILE_PATHS[request_type]) as json_file:
             config = json.load(json_file)
-            if request_type == "parser":
-                file_path = config.get("inputPath")
-            elif request_type == "transform":
-                file_path = config.get("transform_output_path")
-            elif request_type == "lookup":
-                file_path = config.get("lookup_file_path")
-    except ValueError as e:
-        logger.error(
-            f"Unknown request type: {request_type}: {e}"
-        )
+            path_key = constants.CONFIG_FILE_PATH_KEYS.get(request_type)
+            file_path = config.get(path_key)
+    except (KeyError, ValueError) as e:
+        logger.error(f"Unknown request type: {request_type}: {e}")
+        file_path = None
 
+    if not file_path:
+        logger.error(f"Could not resolve file path for request_type '{request_type}'. Check constants.CONFIG_FILE_PATH_KEYS.")
+        return {"error": f"Could not resolve file path for request_type '{request_type}'."}
 
     file_path = Path(file_path)
     #TODO: it's extremely unclear to me why this chunk exisits- why update parser config here?
-    if request_type != "lookup":
+    if request_type == "parser":
         if file_path.is_dir():
             logger.info(f"Input path is directory: {file_path}")
             files = [f for f in file_path.iterdir() if not str(f.name)[0] == "." and f.is_file()]
@@ -321,8 +320,6 @@ def process():
 
 def is_directory(input_path):
     return os.path.isdir(input_path)
-
-
 
 
 def init_quality_check():
@@ -569,6 +566,7 @@ def generate_forecast() -> Dict:
 
     return forecast_df.to_dict(orient="list")
 
+
 def evaluate_forecast() -> Dict:
     forecast_config = get_settings_json("forecast")
 
@@ -592,18 +590,26 @@ def evaluate_forecast() -> Dict:
         **combined_df.to_dict()
     }
 
+
 #TODO - this exists purely to update one field in config, can it be incorporated elsewhere?
-def update_lookup_config() -> None:
-    """Reads column headers from a lookup CSV and updates the transform config."""
+# This exists because right now the field names param is only ever updated in analyzer
+def update_file_field_names(config_type: str, field_names_key: str) -> None:
+    """Reads column headers from the data file for config_type and writes them to
+    config[field_names_key]. Works for any type registered in CONFIG_FILE_PATH_KEYS.
+
+    Example:
+        update_file_field_names("comparison", "dataset2_field_names")
+        update_file_field_names("lookup", "lookup_field_names")
+    """
     try:
-        lookup_df = get_data(kwargs={"format": "dataframe", "request_type": "lookup"})
-        field_names = list(lookup_df.columns)
+        df = get_data(kwargs={"format": "dataframe", "nrows": 0, "request_type": config_type})
+        if df is None or not isinstance(df, pd.DataFrame):
+            raise ValueError(f"get_data returned no data for {config_type}")
+        field_names = list(df.columns)
     except Exception as e:
-        logger.error(f"Failed to read lookup file columns: {e}")
+        logger.error(f"Failed to read column names for {config_type}: {e}")
         field_names = []
-    update_settings("transform", {
-        "lookup_field_names": field_names,
-    })
+    update_settings(config_type, {field_names_key: field_names})
 
 
 def merge_lookup_data() -> bool:
@@ -679,6 +685,56 @@ def run():
     if f:
         process()
         logger.info("Processing...")
+
+
+def run_comparison() -> dict:
+    """Loads both datasets and delegates to dataset_comparator.run_comparison.
+
+    Dataset 1 comes from the active parserConfig (current loaded file).
+    Dataset 2 path is read from comparisonConfig["dataset2_path"].
+
+    Returns the comparison result dict, or None on failure.
+    """
+    logger.info("Starting comparison.")
+    comp_config = get_settings_json("comparison")
+    if not comp_config:
+        logger.error("Comparison config not found.")
+        return None
+
+    dataset2_path = comp_config.get("dataset2_path")
+    if not dataset2_path:
+        logger.error("dataset2_path not set in comparison config.")
+        return None
+
+    logger.info("Loading primary dataset (df1).")
+    df1 = get_data(kwargs={"format": "dataframe"})
+    if df1 is None:
+        logger.error("Failed to load primary dataset for comparison.")
+        return None
+    logger.info(f"df1 loaded: {len(df1)} rows.")
+
+    logger.info(f"Loading comparison dataset (df2) from {dataset2_path}.")
+    try:
+        df2 = get_data(kwargs={"format": "dataframe", "request_type": "comparison"})
+        if df2 is None or not isinstance(df2, pd.DataFrame):
+            raise ValueError("get_data did not return a valid DataFrame.")
+    except Exception as e:
+        logger.error(f"Failed to load dataset2 from {dataset2_path}: {e}")
+        return None
+    logger.info(f"df2 loaded: {len(df2)} rows.")
+
+    return dataset_comparator.run_comparison(
+        df1=df1,
+        df2=df2,
+        key_columns=comp_config.get("key_columns", []),
+        compare_columns=comp_config.get("compare_columns", []),
+        exclude_columns=comp_config.get("exclude_columns", []),
+        tolerances=comp_config.get("tolerances", {}),
+        default_tolerance=comp_config.get("default_tolerance"),
+        label_1=comp_config.get("label_1", "Dataset 1"),
+        label_2=comp_config.get("label_2", "Dataset 2"),
+        max_diff_rows=comp_config.get("max_diff_rows", 500),
+    )
 
 
 if __name__ == "__main__":

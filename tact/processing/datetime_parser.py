@@ -101,6 +101,11 @@ def create_iso_time(csv_row, date_fields, time_field):
                         str(converted_date.day),
                         str(converted_date.year),
                     ]
+                elif len(date) == 4:
+                    # Just a year, use Unix epoch for month/day
+                    yr = date
+                    mn = "01"
+                    dy = "01"
             else:
                 # choosing Unix epoch if date is null.
                 mn = "01"
@@ -135,12 +140,8 @@ def create_iso_time(csv_row, date_fields, time_field):
                 min = tmp
                 hr = "00"
             elif len(tmp) >= 3 and len(tmp) <= 5:
-                # Here we add the leading zero, if it's missing from 'hour'
-                if len(tmp) == 4:
-                    tmp = "0" + tmp
-
                 min = tmp[-2:]
-                hr = tmp[:-3]
+                hr = tmp[:-2]
             else:
                 sec = tmp[-2:]
                 min = tmp[-4:-2]

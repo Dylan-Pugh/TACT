@@ -95,12 +95,14 @@ def replace_in_rows(
 ):
     if target_columns is not None and target_columns:
         for current_column in target_columns:
-            input_frame[current_column].replace(
-                value_to_replace, replacement_value, inplace=True
-            )
-            input_frame[current_column].fillna(value=replacement_value, inplace=True)
+            if value_to_replace is not None:
+                input_frame[current_column] = input_frame[current_column].replace(
+                    value_to_replace, replacement_value
+                )
+            input_frame[current_column] = input_frame[current_column].fillna(value=replacement_value)
     else:
-        input_frame.replace(value_to_replace, replacement_value, inplace=True)
+        if value_to_replace is not None:
+            input_frame.replace(value_to_replace, replacement_value, inplace=True)
         input_frame.fillna(value=replacement_value, inplace=True)
 
 
@@ -182,11 +184,11 @@ def sort_by_time(input_frame: pd.DataFrame, time_fields: list[str] = None) -> pd
             raise ValueError("No valid time field found in flipped_df")
 
     #sort by parsed time and flipped column name, ascending
+    sort_keys = [sort_by_column]
+    if "results_column" in input_frame.columns:
+        sort_keys.append("results_column")
     input_frame.sort_values(
-        by=[
-            sort_by_column,
-            input_frame.get("results_column"),
-        ],
+        by=sort_keys,
         ascending=True,
         inplace=True,
     )

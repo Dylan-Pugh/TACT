@@ -1,4 +1,5 @@
-from flask import Flask, request, make_response
+from flask import Flask, request, make_response, Response
+import json
 from os import path, makedirs
 from shutil import rmtree
 from werkzeug.utils import secure_filename
@@ -17,7 +18,9 @@ def config(config_type):
         if field:
             result = controller.get_settings_json(config_type)
             if field in result:
-                return make_response((result[field], 200))
+                resp = make_response(json.dumps(result[field]), 200)
+                resp.headers['Content-Type'] = 'application/json'
+                return resp
             else:
                 return make_response(
                     ({"message": f"{field} not found in {config_type}."}, 404)

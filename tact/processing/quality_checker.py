@@ -20,9 +20,9 @@ def pull_date_range(input_file, date_column, date_format, qa_settings_JSON):
     try:
         dates = dates.apply(
             lambda current: datetime.datetime.strptime(
-                current, date_format))
+                str(current), date_format) if not isinstance(current, datetime.datetime) else current)
     except ValueError as ex:
-        logger.error(ex.message)
+        logger.error(str(ex))
 
     qa_settings_JSON['minDate'] = datetime.datetime.strftime(
         dates.min(), date_format)

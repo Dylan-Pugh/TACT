@@ -132,10 +132,14 @@ def get_data(kwargs: Dict = {}) -> Union[pd.DataFrame, str, Dict]:
     if request_type != "lookup":
         if file_path.is_dir():
             logger.info(f"Input path is directory: {file_path}")
-            files = [f for f in file_path.iterdir() if not list(f.name)[0] == "." and f.is_file()]
+            files = [f for f in file_path.iterdir() if not str(f.name)[0] == "." and f.is_file()]
 
             logger.info(f"Found files: {files}")
             logger.info("First file will be used for config.")
+            
+            if not files:
+                logger.error(f"No files found in directory: {file_path}")
+                return {"error": f"No files found in directory: {file_path}"}
             
             file_path = files[0]
             
@@ -563,7 +567,7 @@ def generate_forecast() -> Dict:
         value_cols=forecast_config.get("target_data_columns")
     )
 
-    return forecast_df.to_dict()
+    return forecast_df.to_dict(orient="list")
 
 def evaluate_forecast() -> Dict:
     forecast_config = get_settings_json("forecast")

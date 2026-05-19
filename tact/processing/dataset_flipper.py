@@ -90,7 +90,7 @@ def enumerate_row(
         # this condition should always be True, but leaving check for completeness
         enumerated_row["occurrenceStatus"] = (
             "present"
-            if pd.to_numeric(organism_count) > 0 and organism_count != "NaN"
+            if organism_count != "NaN" and pd.to_numeric(organism_count, errors='coerce') > 0
             else "absent"
         )
 
@@ -124,10 +124,13 @@ def pivot(
             columns=pivoted_column,
             values=value_column,
         )
-    except Exception as e:
-        pass
-
-    return pivoted.reset_index()
+        return pivoted.reset_index()
+    except KeyError as e:
+        logger.error(f"Failed to pivot dataset on column '{pivoted_column}': {e}")
+        return pd.DataFrame()
+    except ValueError as e:
+        logger.error(f"Failed to pivot dataset on column '{pivoted_column}': {e}")
+        return pd.DataFrame()
 
 def process(
     target_data_columns: list,
@@ -165,14 +168,15 @@ def process(
     for field in target_data_columns:
         # now enumerate each input row, extracting the values
         for row in valid_records.iterrows():
-            # only skip row if flag is set AND value is < 0 or NaN
+            # explicitly evaluate to numeric, which throws ValueError for bad rows, allowing us to skip them
             try:
-                if drop_empty_records and (pd.to_numeric(row[1][field]) <= 0 or pd.isna(row[1][field])):
-                    logger.debug(f"drop_empty_records is {drop_empty_records}, and current value: {pd.to_numeric(row[1][field])} < 0.")
+                val = pd.to_numeric(row[1][field])
+                if drop_empty_records and (val <= 0 or pd.isna(val)):
+                    logger.debug(f"drop_empty_records is {drop_empty_records}, and current value: {val} <= 0 or NaN.")
                     logger.debug("Skipped row.")
                     continue
             except ValueError as e:
-                logger.error(f"Failed to evaluate value as number: {e}")
+                logger.error(f"Skipping bad row. Failed to evaluate value as number: {e}")
                 logger.error(f"Value: {row[1][field]}")
                 continue
 

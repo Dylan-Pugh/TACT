@@ -163,7 +163,7 @@ def test_get_data_transform_request_type(mock_file, mock_read_csv, mock_path_cls
 
 @patch("tact.control.controller.Path")
 @patch("pandas.read_csv")
-@patch("builtins.open", new_callable=mock_open, read_data='{"lookup_file_path": "lookup.csv"}')
+@patch("builtins.open", new_callable=mock_open, read_data='{"lookup_path": "lookup.csv"}')
 def test_get_data_lookup_request_type(mock_file, mock_read_csv, mock_path_cls):
     """Test get_data with request_type='lookup' reads lookup_file_path."""
     mock_df = MagicMock(spec=pd.DataFrame)
@@ -251,7 +251,7 @@ def test_get_data_directory_input_updates_parser_config(mock_file, mock_read_csv
 @patch("tact.control.controller.Path")
 @patch("tact.control.controller.update_settings")
 @patch("pandas.read_csv")
-@patch("builtins.open", new_callable=mock_open, read_data='{"inputPath": "/tmp/testdir"}')
+@patch("builtins.open", new_callable=mock_open, read_data='{"lookup_path": "/tmp/testdir"}')
 def test_get_data_lookup_type_skips_directory_update(mock_file, mock_read_csv, mock_update, mock_path_cls):
     """Test that request_type='lookup' skips directory update_settings."""
     # This test verifies the guard: if request_type == "lookup", update_settings should not be called
@@ -511,23 +511,47 @@ def test_merge_lookup_data_returns_none(mock_get_settings, mock_get_data, mock_m
     assert "Merge returned None" in caplog.text
 
 
-# --- update_lookup_config ---
+# --- update_file_field_names ---
 @patch("tact.control.controller.update_settings")
 @patch("tact.control.controller.get_data")
-def test_update_lookup_config_success(mock_get_data, mock_update):
-    """Test that update_lookup_config reads columns and updates transform config."""
+def test_update_file_field_names_success(mock_get_data, mock_update):
+    """update_file_field_names reads columns via get_data and writes them to config."""
     mock_get_data.return_value = pd.DataFrame({"col_a": [1], "col_b": [2], "col_c": [3]})
-    controller.update_lookup_config()
-    mock_update.assert_called_once_with("transform", {"lookup_field_names": ["col_a", "col_b", "col_c"]})
+    controller.update_file_field_names("lookup", "lookup_field_names")
+    mock_get_data.assert_called_once_with(kwargs={"format": "dataframe", "nrows": 0, "request_type": "lookup"})
+    mock_update.assert_called_once_with("lookup", {"lookup_field_names": ["col_a", "col_b", "col_c"]})
 
 @patch("tact.control.controller.update_settings")
 @patch("tact.control.controller.get_data")
-def test_update_lookup_config_failure(mock_get_data, mock_update, caplog):
-    """Test that failed lookup file read is logged but doesn't crash."""
+def test_update_file_field_names_failure(mock_get_data, mock_update, caplog):
+    """Failed CSV read is logged and an empty list is stored, without crashing."""
     mock_get_data.side_effect = Exception("File not found")
-    controller.update_lookup_config()
-    mock_update.assert_called_once_with("transform", {"lookup_field_names": []})
-    assert "Failed to read lookup file columns" in caplog.text
+    controller.update_file_field_names("lookup", "lookup_field_names")
+    mock_update.assert_called_once_with("lookup", {"lookup_field_names": []})
+    assert "Failed to read column names" in caplog.text
+
+def test_lookup_upload_key_alignment():
+    """CONFIG_FILE_PATH_KEYS["lookup"] must match the key written by the upload handler.
+
+    The upload handler stores the file path under "lookup_path" in transformConfig.JSON.
+    get_data(request_type="lookup") resolves the file path via CONFIG_FILE_PATH_KEYS["lookup"].
+    If these diverge, field-name caching silently reads a stale path instead of the
+    uploaded file — the regression introduced when "lookup_file_path" was used instead.
+    """
+    upload_write_key = "lookup_path"
+    assert constants.CONFIG_FILE_PATH_KEYS["lookup"] == upload_write_key, (
+        f"CONFIG_FILE_PATH_KEYS['lookup'] is '{constants.CONFIG_FILE_PATH_KEYS['lookup']}' "
+        f"but the upload handler writes to '{upload_write_key}'. "
+        "These must match or update_file_field_names will read a stale path."
+    )
+
+def test_comparison_upload_key_alignment():
+    """CONFIG_FILE_PATH_KEYS["comparison"] must match the key written by the upload handler."""
+    upload_write_key = "dataset2_path"
+    assert constants.CONFIG_FILE_PATH_KEYS["comparison"] == upload_write_key, (
+        f"CONFIG_FILE_PATH_KEYS['comparison'] is '{constants.CONFIG_FILE_PATH_KEYS['comparison']}' "
+        f"but the upload handler writes to '{upload_write_key}'."
+    )
 
 
 # --- generate_forecast ---

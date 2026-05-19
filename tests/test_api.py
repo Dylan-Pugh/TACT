@@ -69,13 +69,13 @@ def test_config_get_field_not_found(mock_get_settings, client):
 
 # --- /upload ---
 @patch("tact.API.tact_api.controller.update_settings")
-@patch("tact.API.tact_api.controller.update_lookup_config")
-def test_upload_lookup_type(mock_update_lookup, mock_update_settings, client):
+@patch("tact.API.tact_api.controller.update_file_field_names")
+def test_upload_lookup_type(mock_update_field_names, mock_update_settings, client):
     mock_update_settings.return_value = True
     data = {"file": (BytesIO(b"test data"), "lookup.csv")}
     response = client.post("/upload?type=lookup", data=data, content_type="multipart/form-data")
     assert response.status_code == 200
-    mock_update_lookup.assert_called_once()
+    mock_update_field_names.assert_called_once_with("lookup", "lookup_field_names")
 
 @patch("tact.API.tact_api.controller.update_settings")
 def test_upload_success(mock_update_settings, client):

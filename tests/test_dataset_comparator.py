@@ -289,3 +289,130 @@ def test_run_comparison_with_tolerance(df1, df2):
     assert result is not None
     # A: 15.0 vs 15.1 (diff 0.1 ≤ 0.6 → match), B: 16.5 vs 17.0 (diff 0.5 ≤ 0.6 → match)
     assert result["summary"]["rows_with_diffs"] == 0
+
+
+# -----------------------------------------------------------------------------
+# fuzzy_merge_on_keys
+# -----------------------------------------------------------------------------
+
+@pytest.fixture
+def df_fuzzy_1():
+    return pd.DataFrame({
+        "id":    ["X", "X", "Y"],
+        "depth": [10.0, 10.0, 20.0],
+        "val":   [1.0,  1.0,  2.0],
+    })
+
+@pytest.fixture
+def df_fuzzy_2():
+    return pd.DataFrame({
+        "id":    ["X", "X", "Y"],
+        "depth": [10.3, 11.0, 20.1],  # 10.3 and 11.0 both within tol 1.0 of 10.0; closest is 10.3
+        "val":   [1.1,  1.5,  2.2],
+    })
+
+
+def test_fuzzy_merge_basic(df_fuzzy_1, df_fuzzy_2):
+    """Fuzzy key within tolerance produces a match; closest candidate is kept."""
+    merged = dataset_comparator.fuzzy_merge_on_keys(
+        df_fuzzy_1, df_fuzzy_2,
+        key_columns=["id", "depth"],
+        compare_cols=["val"],
+        key_tolerances={"depth": 1.0},
+    )
+    assert merged is not None
+    # id=X has two candidates (10.3 and 11.0); closest (10.3) wins
+    # id=Y has one candidate (20.1, within tol 1.0)
+    assert len(merged) == 2
+    x_row = merged[merged["id"] == "X"].iloc[0]
+    assert abs(x_row["depth_2"] - 10.3) < 1e-9
+
+
+def test_fuzzy_merge_no_exact_key_returns_none(df_fuzzy_1, df_fuzzy_2, caplog):
+    """All keys are fuzzy (no exact anchor) → returns None and logs error."""
+    result = dataset_comparator.fuzzy_merge_on_keys(
+        df_fuzzy_1, df_fuzzy_2,
+        key_columns=["id", "depth"],
+        compare_cols=["val"],
+        key_tolerances={"id": "contains", "depth": 1.0},
+    )
+    assert result is None
+    assert "at least one exact key" in caplog.text.lower()
+
+
+def test_fuzzy_merge_no_candidates_after_filter(caplog):
+    """When no candidates survive the fuzzy filter, returns an empty DataFrame."""
+    df_a = pd.DataFrame({"id": ["X"], "depth": [10.0], "val": [1.0]})
+    df_b = pd.DataFrame({"id": ["X"], "depth": [15.0], "val": [2.0]})  # 5.0 > tol 1.0
+    merged = dataset_comparator.fuzzy_merge_on_keys(
+        df_a, df_b,
+        key_columns=["id", "depth"],
+        compare_cols=["val"],
+        key_tolerances={"depth": 1.0},
+    )
+    assert merged is not None
+    assert len(merged) == 0
+
+
+def test_fuzzy_merge_unsuffixed_key_alias(df_fuzzy_1, df_fuzzy_2):
+    """Fuzzy key columns get an unsuffixed alias (df1 value) for downstream compatibility."""
+    merged = dataset_comparator.fuzzy_merge_on_keys(
+        df_fuzzy_1, df_fuzzy_2,
+        key_columns=["id", "depth"],
+        compare_cols=["val"],
+        key_tolerances={"depth": 1.0},
+    )
+    assert "depth" in merged.columns
+    assert "depth_1" in merged.columns
+    assert "depth_2" in merged.columns
+    assert (merged["depth"] == merged["depth_1"]).all()
+
+
+def test_run_comparison_fuzzy_mode():
+    """End-to-end fuzzy run: more rows matched than exact mode finds."""
+    df1 = pd.DataFrame({
+        "id":    ["A", "B"],
+        "depth": [10.0, 20.0],
+        "val":   [1.0, 2.0],
+    })
+    df2 = pd.DataFrame({
+        "id":    ["A", "B", "C"],
+        "depth": [10.4, 20.3, 30.0],  # within tol 0.5 for A and B
+        "val":   [1.1, 2.1, 3.0],
+    })
+    result = dataset_comparator.run_comparison(
+        df1=df1, df2=df2,
+        key_columns=["id", "depth"],
+        compare_columns=["val"],
+        exclude_columns=[],
+        tolerances={},
+        default_tolerance=None,
+        label_1="D1", label_2="D2",
+        max_diff_rows=500,
+        match_mode="fuzzy",
+        key_tolerances={"depth": 0.5},
+    )
+    assert result is not None
+    assert result["summary"]["match_mode"] == "fuzzy"
+    # Both A and B should match via fuzzy depth; exact would find 0 (depths differ)
+    assert result["summary"]["matched_rows"] == 2
+
+
+def test_run_comparison_exact_mode_unaffected_by_key_tolerances():
+    """match_mode='exact' ignores key_tolerances and uses exact merge."""
+    df1 = pd.DataFrame({"id": ["A"], "depth": [10.0], "val": [1.0]})
+    df2 = pd.DataFrame({"id": ["A"], "depth": [10.4], "val": [1.0]})
+    result = dataset_comparator.run_comparison(
+        df1=df1, df2=df2,
+        key_columns=["id", "depth"],
+        compare_columns=["val"],
+        exclude_columns=[],
+        tolerances={},
+        default_tolerance=None,
+        label_1="D1", label_2="D2",
+        max_diff_rows=500,
+        match_mode="exact",
+        key_tolerances={"depth": 1.0},
+    )
+    assert result is not None
+    assert result["summary"]["matched_rows"] == 0

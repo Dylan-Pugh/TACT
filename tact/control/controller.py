@@ -734,6 +734,8 @@ def run_comparison() -> dict:
         label_1=comp_config.get("label_1", "Dataset 1"),
         label_2=comp_config.get("label_2", "Dataset 2"),
         max_diff_rows=comp_config.get("max_diff_rows", 500),
+        match_mode=comp_config.get("match_mode", "exact"),
+        key_tolerances=comp_config.get("key_tolerances", {}),
     )
 
 

@@ -158,6 +158,181 @@ def compute_coverage(
     }
 
 
+def _format_delta(v1, v2, tol: Tolerance) -> str:
+    """Human-readable delta between two key values given their tolerance type."""
+    try:
+        if isinstance(tol, pd.Timedelta):
+            t1 = pd.to_datetime(v1, utc=True)
+            t2 = pd.to_datetime(v2, utc=True)
+            total_sec = int(abs(t1 - t2).total_seconds())
+            h, rem = divmod(total_sec, 3600)
+            m, s = divmod(rem, 60)
+            if h > 0:
+                return f"{h}h {m}min" if m > 0 else f"{h}h"
+            if m > 0:
+                return f"{m}min {s}s" if s > 0 else f"{m}min"
+            return f"{s}s"
+        if isinstance(tol, (int, float)):
+            return f"{abs(float(v1) - float(v2)):.6g}"
+    except Exception:
+        pass
+    return "—"
+
+
+def build_fuzzy_match_details(
+    merged: pd.DataFrame,
+    exact_keys: List[str],
+    fuzzy_keys: List[str],
+    parsed_tols: Dict[str, Tolerance],
+    compare_cols: List[str],
+    suffix_1: str,
+    suffix_2: str,
+    max_rows: int,
+) -> List[Dict]:
+    """Returns per-row fuzzy match details for display: exact key values, per-fuzzy-key
+    v1/v2/delta entries, and compare column v1/v2 values. Capped at max_rows."""
+    records = []
+    for _, row in merged.iterrows():
+        if len(records) >= max_rows:
+            break
+        exact_key_vals = {k: row[k] for k in exact_keys if k in row.index}
+        fuzzy_key_diffs = {}
+        for k in fuzzy_keys:
+            v1 = row.get(k + suffix_1)
+            v2 = row.get(k + suffix_2)
+            fuzzy_key_diffs[k] = {
+                "v1": v1,
+                "v2": v2,
+                "delta": _format_delta(v1, v2, parsed_tols.get(k)),
+            }
+        compare_vals = {}
+        for c in compare_cols:
+            compare_vals[c] = {
+                "v1": row.get(c + suffix_1),
+                "v2": row.get(c + suffix_2),
+            }
+        records.append({
+            "exact_keys": exact_key_vals,
+            "fuzzy_keys": fuzzy_key_diffs,
+            "compare_cols": compare_vals,
+        })
+    return records
+
+
+def _fuzzy_distance(v1, v2, tol: Tolerance) -> float:
+    """Normalized distance relative to tolerance, in [0, 1]. Returns inf on error."""
+    try:
+        if isinstance(tol, pd.Timedelta):
+            d = abs(pd.to_datetime(v1, utc=True) - pd.to_datetime(v2, utc=True))
+            return d.total_seconds() / tol.total_seconds()
+        if isinstance(tol, (int, float)):
+            return abs(float(v1) - float(v2)) / tol
+    except Exception:
+        pass
+    return float("inf")
+
+
+def fuzzy_merge_on_keys(
+    df1: pd.DataFrame,
+    df2: pd.DataFrame,
+    key_columns: List[str],
+    compare_cols: List[str],
+    key_tolerances: Dict[str, Tolerance],
+    suffix_1: str = "_1",
+    suffix_2: str = "_2",
+) -> Optional[pd.DataFrame]:
+    """
+    Fuzzy inner merge: key columns without a key_tolerance are matched exactly;
+    those with a key_tolerance are matched within that window.
+
+    At least one exact key is required to anchor candidate generation (prevents a
+    full cross-join on large datasets).
+
+    For each df1 row, the single closest df2 candidate is kept (minimum sum of
+    per-key normalized distances across all fuzzy keys).
+
+    Unsuffixed aliases for fuzzy key columns are added to the result (using df1
+    values) so downstream functions can address key_columns by their original names.
+    """
+    parsed_tols = {k: _parse_tolerance(v) for k, v in key_tolerances.items() if k in key_columns}
+    exact_keys = [k for k in key_columns if k not in parsed_tols]
+    fuzzy_keys = [k for k in key_columns if k in parsed_tols]
+
+    if not exact_keys:
+        logger.error("fuzzy_merge_on_keys requires at least one exact key column.")
+        return None
+
+    missing_1 = [k for k in key_columns if k not in df1.columns]
+    missing_2 = [k for k in key_columns if k not in df2.columns]
+    if missing_1:
+        logger.error(f"Key column(s) {missing_1} not found in left DataFrame.")
+        return None
+    if missing_2:
+        logger.error(f"Key column(s) {missing_2} not found in right DataFrame.")
+        return None
+
+    cols_1 = [c for c in list(dict.fromkeys(key_columns + compare_cols)) if c in df1.columns]
+    cols_2 = [c for c in list(dict.fromkeys(key_columns + compare_cols)) if c in df2.columns]
+
+    try:
+        candidates = pd.merge(
+            df1[cols_1].drop_duplicates(subset=key_columns),
+            df2[cols_2].drop_duplicates(subset=key_columns),
+            on=exact_keys,
+            suffixes=(suffix_1, suffix_2),
+            how="inner",
+        )
+    except Exception as e:
+        logger.error(f"fuzzy_merge_on_keys candidate generation failed: {e}")
+        return None
+
+    if candidates.empty:
+        logger.warning("fuzzy_merge_on_keys: no candidates after exact key join.")
+        return candidates
+
+    for k in fuzzy_keys:
+        tol = parsed_tols[k]
+        c1, c2 = k + suffix_1, k + suffix_2
+        if c1 not in candidates.columns or c2 not in candidates.columns:
+            continue
+        if isinstance(tol, pd.Timedelta):
+            s1 = pd.to_datetime(candidates[c1], utc=True, errors="coerce")
+            s2 = pd.to_datetime(candidates[c2], utc=True, errors="coerce")
+            candidates = candidates[(s1 - s2).abs() <= tol]
+        elif isinstance(tol, (int, float)):
+            candidates = candidates[
+                (candidates[c1].astype(float) - candidates[c2].astype(float)).abs() <= tol
+            ]
+        if candidates.empty:
+            break
+
+    if candidates.empty:
+        logger.warning("fuzzy_merge_on_keys: no candidates survived fuzzy key filter.")
+        return candidates
+
+    def _row_dist(row):
+        return sum(
+            _fuzzy_distance(row[k + suffix_1], row[k + suffix_2], parsed_tols[k])
+            for k in fuzzy_keys
+        )
+
+    candidates = candidates.copy()
+    candidates["_dist"] = candidates.apply(_row_dist, axis=1)
+    df1_id = exact_keys + [k + suffix_1 for k in fuzzy_keys]
+    candidates = (
+        candidates
+        .sort_values("_dist")
+        .drop_duplicates(subset=df1_id, keep="first")
+        .drop(columns=["_dist"])
+        .reset_index(drop=True)
+    )
+
+    for k in fuzzy_keys:
+        candidates[k] = candidates[k + suffix_1]
+
+    return candidates
+
+
 def merge_on_keys(
     df1: pd.DataFrame,
     df2: pd.DataFrame,
@@ -286,6 +461,8 @@ def run_comparison(
     label_1: str,
     label_2: str,
     max_diff_rows: int,
+    match_mode: str = "exact",
+    key_tolerances: Optional[Dict[str, Tolerance]] = None,
 ) -> Optional[Dict]:
     if not key_columns:
         logger.error("key_columns must be specified to run a comparison.")
@@ -311,8 +488,14 @@ def run_comparison(
                 f"{coverage['only_in_2']} only in 2.")
 
     suffix_1, suffix_2 = "_1", "_2"
-    logger.info("Merging on keys.")
-    merged = merge_on_keys(df1, df2, key_columns, effective_compare_cols, suffix_1, suffix_2)
+    logger.info(f"Merging on keys (mode: {match_mode}).")
+    if match_mode == "fuzzy" and key_tolerances:
+        merged = fuzzy_merge_on_keys(
+            df1, df2, key_columns, effective_compare_cols,
+            key_tolerances, suffix_1, suffix_2,
+        )
+    else:
+        merged = merge_on_keys(df1, df2, key_columns, effective_compare_cols, suffix_1, suffix_2)
 
     if merged is None or merged.empty:
         logger.info("No matched rows to diff.")
@@ -342,10 +525,21 @@ def run_comparison(
     identical_matched_rows = matched_count - rows_with_diffs
     overall_match_pct = round(100.0 * (total_cells - differing_cells) / total_cells, 2) if total_cells > 0 else 100.0
 
+    fuzzy_match_details = []
+    if match_mode == "fuzzy" and key_tolerances and merged is not None and not merged.empty:
+        parsed_key_tols = {k: _parse_tolerance(v) for k, v in key_tolerances.items() if k in key_columns}
+        exact_keys_list = [k for k in key_columns if k not in parsed_key_tols]
+        fuzzy_keys_list = [k for k in key_columns if k in parsed_key_tols]
+        fuzzy_match_details = build_fuzzy_match_details(
+            merged, exact_keys_list, fuzzy_keys_list, parsed_key_tols,
+            effective_compare_cols, suffix_1, suffix_2, max_diff_rows,
+        )
+
     return {
         "schema": schema,
         "coverage": coverage,
         "value_diffs": value_diffs,
+        "fuzzy_match_details": fuzzy_match_details,
         "summary": {
             "column_summary": col_summary,
             "matched_rows": matched_count,
@@ -354,5 +548,6 @@ def run_comparison(
             "differing_cells": differing_cells,
             "total_cells": total_cells,
             "overall_match_pct": overall_match_pct,
+            "match_mode": match_mode,
         },
     }

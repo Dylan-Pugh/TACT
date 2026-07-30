@@ -39,6 +39,16 @@ const TransformPage = () => {
     const [isCombining, setIsCombining] = useState(false);
     const [combineResult, setCombineResult] = useState(null);
 
+    // ─── Column Splitting State ───────────────────────────────────────────────
+    // Rules are held locally only for the duration of an edit session; the config
+    // file remains the source of truth and is written before every preview.
+    const [splitRules, setSplitRules] = useState([]);
+    const [splitPreview, setSplitPreview] = useState(null);
+    const [isPreviewingSplit, setIsPreviewingSplit] = useState(false);
+    const [splitOutputPath, setSplitOutputPath] = useState('');
+    const [isSplitting, setIsSplitting] = useState(false);
+    const [splitResult, setSplitResult] = useState(null);
+
     const dataColumns = previewData ? Object.keys(previewData) : [];
 
     useEffect(() => {
@@ -73,6 +83,8 @@ const TransformPage = () => {
                 setPrimaryUnits(transform.primary_units || '');
                 setAltUnits(transform.alt_units || '');
                 setConstants(transform.constants || { constant_key: 'constant_value' });
+                setSplitRules(transform.column_split_rules || []);
+                setSplitOutputPath(transform.split_output_path || '');
             } catch (err) {
                 setMsg({ text: `Failed to load data: ${err.message}`, type: 'error' });
             } finally {
@@ -85,6 +97,88 @@ const TransformPage = () => {
     // ─── Transform Config Helper (mirrors CleanPage pattern) ─────────────────
     const handleTransformConfigChange = (key, value) => {
         setTransformConfig(prev => ({ ...prev, [key]: value }));
+    };
+
+    // ─── Column Splitting Handlers ────────────────────────────────────────────
+    const updateSplitRule = (index, key, value) => {
+        setSplitRules(prev => prev.map((rule, i) => (i === index ? { ...rule, [key]: value } : rule)));
+    };
+
+    const addSplitRule = () => {
+        setSplitRules(prev => [
+            ...prev,
+            { source_column: '', delimiter: '', output_columns: '', remove_match: true },
+        ]);
+    };
+
+    const removeSplitRule = (index) => {
+        setSplitRules(prev => prev.filter((_, i) => i !== index));
+    };
+
+    // Rule order is significant: with overwrite off, the first rule to populate a
+    // cell wins, so more specific delimiters must run before more general ones.
+    const moveSplitRule = (index, offset) => {
+        const target = index + offset;
+        if (target < 0 || target >= splitRules.length) return;
+        setSplitRules(prev => {
+            const next = [...prev];
+            [next[index], next[target]] = [next[target], next[index]];
+            return next;
+        });
+    };
+
+    const previewSplitRules = async () => {
+        setIsPreviewingSplit(true);
+        setSplitPreview(null);
+        setMsg({ text: 'Saving rules and generating preview...', type: 'info' });
+        try {
+            const configRes = await fetch('/config/transform', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ column_split_rules: splitRules }),
+            });
+            if (!configRes.ok) throw new Error('Config update failed');
+
+            const { ok, data } = await fetchJson('/preview?preview_type=split_fields');
+            if (ok && data && data.data) {
+                setSplitPreview(data.data);
+                setMsg({ text: '', type: '' });
+            } else {
+                setMsg({ text: 'Failed to generate split preview.', type: 'error' });
+            }
+        } catch (err) {
+            setMsg({ text: `Preview error: ${err.message}`, type: 'error' });
+        } finally {
+            setIsPreviewingSplit(false);
+        }
+    };
+
+    const handleSplitColumns = async () => {
+        setIsSplitting(true);
+        setSplitResult(null);
+        setMsg({ text: 'Saving rules and splitting columns...', type: 'info' });
+        try {
+            const configRes = await fetch('/config/transform', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    column_split_rules: splitRules,
+                    split_output_path: splitOutputPath,
+                }),
+            });
+            if (!configRes.ok) throw new Error('Config update failed');
+
+            const params = new URLSearchParams({ operation: 'split_fields' });
+            const splitRes = await fetch(`/transform?${params.toString()}`, { method: 'POST' });
+
+            setSplitResult({ success: splitRes.ok });
+            setMsg({ text: '', type: '' });
+        } catch (err) {
+            setSplitResult({ success: false });
+            setMsg({ text: `Split error: ${err.message}`, type: 'error' });
+        } finally {
+            setIsSplitting(false);
+        }
     };
 
     const handleRegexChange = (val) => {
@@ -667,6 +761,204 @@ const TransformPage = () => {
                 {lookupMergeResult && !lookupMergeResult.success && (
                     <div className="status-message error" style={{ marginTop: '10px' }}>
                         ❌ Merge failed. Check the API logs for details.
+                    </div>
+                )}
+            </div>
+
+            {/* ── Section 4: Column Splitting ───────────────────────────────── */}
+            <div className="section config-form-container">
+                <h3>Column Splitting</h3>
+                <p style={{ marginBottom: '1rem' }}>
+                    Extract values out of a field into other columns using a delimiter or
+                    regex. Rules run top to bottom, and the first rule to fill a cell keeps
+                    it — so put more specific delimiters (e.g. <code>post larvae</code>)
+                    above more general ones (e.g. <code>larvae</code>).
+                </p>
+
+                {splitRules.map((rule, index) => (
+                    <div
+                        key={index}
+                        className="form-group"
+                        style={{ border: '1px solid var(--border-color, #ccc)', borderRadius: '4px', padding: '10px', marginBottom: '10px' }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <strong>Rule {index + 1}</strong>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                                <button type="button" className="secondary" onClick={() => moveSplitRule(index, -1)} disabled={index === 0}>↑</button>
+                                <button type="button" className="secondary" onClick={() => moveSplitRule(index, 1)} disabled={index === splitRules.length - 1}>↓</button>
+                                <button type="button" className="secondary" onClick={() => removeSplitRule(index)}>Remove</button>
+                            </div>
+                        </div>
+
+                        <div className="responsive-grid grid-2-col">
+                            <div className="form-group">
+                                <label>Source Column</label>
+                                <input
+                                    type="text"
+                                    value={rule.source_column || ''}
+                                    onChange={e => updateSplitRule(index, 'source_column', e.target.value)}
+                                    placeholder="taxon"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Delimiter / Regex</label>
+                                <input
+                                    type="text"
+                                    value={rule.delimiter || ''}
+                                    onChange={e => updateSplitRule(index, 'delimiter', e.target.value)}
+                                    placeholder="\blarvae\b"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Output Columns (comma separated)</label>
+                                <input
+                                    type="text"
+                                    value={Array.isArray(rule.output_columns) ? rule.output_columns.join(', ') : (rule.output_columns || '')}
+                                    onChange={e => {
+                                        const parts = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                                        updateSplitRule(index, 'output_columns', parts.length > 1 ? parts : e.target.value);
+                                    }}
+                                    placeholder="taxon_stage"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Literal Value (optional — overrides extracted text)</label>
+                                <input
+                                    type="text"
+                                    value={rule.value || ''}
+                                    onChange={e => updateSplitRule(index, 'value', e.target.value || null)}
+                                    placeholder="V-VI"
+                                />
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap' }}>
+                            <label><input type="checkbox" checked={!!rule.remove_match} onChange={e => updateSplitRule(index, 'remove_match', e.target.checked)} /> Remove match from source</label>
+                            <label><input type="checkbox" checked={!!rule.overwrite} onChange={e => updateSplitRule(index, 'overwrite', e.target.checked)} /> Overwrite existing values</label>
+                            <label><input type="checkbox" checked={!!rule.case_sensitive} onChange={e => updateSplitRule(index, 'case_sensitive', e.target.checked)} /> Case sensitive</label>
+                        </div>
+                    </div>
+                ))}
+
+                <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                    <button type="button" className="secondary" onClick={addSplitRule}>Add Rule</button>
+                    <button
+                        type="button"
+                        className="primary"
+                        onClick={previewSplitRules}
+                        disabled={isPreviewingSplit || splitRules.length === 0}
+                    >
+                        {isPreviewingSplit ? 'Generating...' : 'Preview Split Rules'}
+                    </button>
+                </div>
+
+                <div className="form-group" style={{ marginTop: '1.5rem' }}>
+                    <label>Output Path for Split</label>
+                    <input
+                        type="text"
+                        value={splitOutputPath}
+                        onChange={e => setSplitOutputPath(e.target.value)}
+                        placeholder="path/to/output.csv"
+                    />
+                </div>
+                <button
+                    type="button"
+                    className="primary"
+                    onClick={handleSplitColumns}
+                    disabled={isSplitting || splitRules.length === 0 || !splitOutputPath}
+                >
+                    {isSplitting ? 'Splitting...' : 'Split Columns'}
+                </button>
+
+                {isSplitting && (
+                    <div className="status-message info" style={{ marginTop: '10px' }}>
+                        ⏳ Splitting columns, please wait...
+                    </div>
+                )}
+                {splitResult && splitResult.success && (
+                    <div className="status-message success" style={{ marginTop: '10px' }}>
+                        ✅ Success — output written to {splitOutputPath}
+                    </div>
+                )}
+                {splitResult && !splitResult.success && (
+                    <div className="status-message error" style={{ marginTop: '10px' }}>
+                        ❌ Split failed. Check the API logs for details.
+                    </div>
+                )}
+
+                {splitPreview && splitPreview.rule_summary && (
+                    <div className="section" style={{ marginTop: '1.5rem' }}>
+                        <h4>Rule Summary ({splitPreview.total_rows} rows)</h4>
+                        <div className="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>#</th><th>Source</th><th>Delimiter</th><th>Mode</th>
+                                        <th>Outputs</th><th>Matched</th><th>Changed</th><th>Shadowed</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {splitPreview.rule_summary.map(entry => (
+                                        <tr key={entry.rule_index}>
+                                            <td>{entry.rule_index}</td>
+                                            <td>{entry.source_column}</td>
+                                            <td><code>{entry.delimiter}</code></td>
+                                            <td>{entry.mode || '—'}</td>
+                                            <td>{(entry.output_columns || []).join(', ')}</td>
+                                            <td>{entry.matched_rows}</td>
+                                            <td>{entry.changed_rows}</td>
+                                            <td>{entry.shadowed_rows}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {splitPreview.rule_summary.filter(e => e.error).map(e => (
+                            <div key={`err-${e.rule_index}`} className="status-message error" style={{ marginTop: '10px' }}>
+                                ❌ Rule {e.rule_index}: {e.error}
+                            </div>
+                        ))}
+                        {splitPreview.rule_summary.filter(e => !e.error && e.matched_rows === 0).map(e => (
+                            <div key={`nomatch-${e.rule_index}`} className="status-message error" style={{ marginTop: '10px' }}>
+                                ⚠️ Rule {e.rule_index} (<code>{e.delimiter}</code>) matched no rows — check the delimiter.
+                            </div>
+                        ))}
+                        {splitPreview.rule_summary.filter(e => e.shadowed_rows > 0).map(e => (
+                            <div key={`shadow-${e.rule_index}`} className="status-message error" style={{ marginTop: '10px' }}>
+                                ⚠️ Rule {e.rule_index} (<code>{e.delimiter}</code>) matched {e.matched_rows} rows but
+                                changed nothing in {e.shadowed_rows} of them — an earlier rule already filled those
+                                destinations. Move this rule up, or enable Overwrite.
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {splitPreview && splitPreview.samples && splitPreview.samples.length > 0 && (
+                    <div className="section" style={{ marginTop: '1.5rem' }}>
+                        <h4>Sample Transformations</h4>
+                        <p style={{ marginBottom: '0.5rem' }}>
+                            One example per distinct input shape, so structurally different
+                            matches (end-of-string vs. mid-string) are each shown.
+                        </p>
+                        <div className="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        {Object.keys(splitPreview.samples[0]).map(k => <th key={k}>{k}</th>)}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {splitPreview.samples.map((sample, i) => (
+                                        <tr key={i}>
+                                            {Object.keys(splitPreview.samples[0]).map(col => (
+                                                <td key={col}>{sample[col] === null || sample[col] === undefined ? '—' : String(sample[col])}</td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
             </div>

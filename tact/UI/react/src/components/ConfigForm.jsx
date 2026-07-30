@@ -45,9 +45,15 @@ const ConfigForm = ({ onUploadSuccess }) => {
             });
 
             if (response.ok) {
-                setMessage('File uploaded and config updated successfully.');
+                setMessage('Analyzing file...');
+                const analysisRes = await fetch('/analysis');
+                if (!analysisRes.ok) {
+                    setMessage('File uploaded but analysis failed. Check the file format and try again.');
+                    setStatus('error');
+                    return;
+                }
+                setMessage('File uploaded and analyzed successfully.');
                 setStatus('success');
-                // Allow a brief moment for the user to see success before redirecting, or redirect immediately
                 setTimeout(() => {
                     if (onUploadSuccess) onUploadSuccess();
                 }, 1000);
@@ -78,6 +84,13 @@ const ConfigForm = ({ onUploadSuccess }) => {
             });
 
             if (response.ok) {
+                setMessage('Analyzing file...');
+                const analysisRes = await fetch('/analysis');
+                if (!analysisRes.ok) {
+                    setMessage('Config updated but analysis failed. Check the file format and try again.');
+                    setStatus('error');
+                    return;
+                }
                 setMessage(`Test Mode activated. Path is: ${targetPath}`);
                 setStatus('success');
                 setTimeout(() => {

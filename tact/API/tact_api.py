@@ -140,6 +140,14 @@ def preview():
             )
         else:
             return make_response(("Taxonomic name preview generation failed.", 404))
+    elif preview_type and preview_type == "split_fields":
+        result = controller.generate_split_preview()
+        if result:
+            return make_response(
+                ({"message": "Split preview generated.", "data": result}, 200)
+            )
+        else:
+            return make_response(("Split preview generation failed.", 404))
     else:
         result = controller.generate_preview()
         if result:
@@ -197,11 +205,16 @@ def transform():
             return make_response(("Lookup merge complete.", 200))
         else:
             return make_response(("Lookup merge failed.", 404))
+    elif operation == "split_fields":
+        if controller.split_columns():
+            return make_response(("Columns split successfully.", 200))
+        else:
+            return make_response(("Failed to split columns.", 404))
     else:
         return make_response(
             (
                 {
-                    "message": "Invalid operation, please select enumerate_columns, combine_rows, merge_taxa, or merge_lookup."
+                    "message": "Invalid operation, please select enumerate_columns, combine_rows, merge_taxa, merge_lookup, or split_fields."
                 },
                 400,
             )

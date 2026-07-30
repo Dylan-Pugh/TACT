@@ -15,6 +15,7 @@ import tact.processing.taxonomic_name_matcher as taxa_matcher
 import tact.processing.forecaster as forecaster
 import tact.processing.lookup_merger as lookup_merger
 import tact.processing.dataset_comparator as dataset_comparator
+import tact.processing.field_splitter as field_splitter
 import tact.util.constants as constants
 import tact.util.csv_utils as csv_utils
 from tact.control.logging_controller import LoggingController as loggingController
@@ -484,6 +485,55 @@ def combine_rows():
     )
 
 
+def split_columns() -> bool:
+    """Applies the configured column split rules and writes the result.
+
+    Expected transform config keys:
+        column_split_rules (list[dict]): Ordered split rules. Each rule takes
+            source_column, delimiter, output_columns, and optionally value, mode,
+            remove_match, overwrite, case_sensitive, clean_whitespace.
+        split_output_path (str): Path to write the split output.
+
+    Returns:
+        bool: True if the split succeeded and output was written.
+    """
+    transform_config = get_settings_json("transform")
+    parser_config = get_settings_json("parser")
+
+    split_rules = transform_config.get("column_split_rules", [])
+    output_path = transform_config.get("split_output_path")
+
+    logger.info("Splitting columns...")
+    logger.debug(f"Split args: {len(split_rules)} rule(s)")
+    logger.debug(f"Split args: split_output_path: {output_path}")
+
+    if not split_rules:
+        logger.error("No column_split_rules configured — nothing to split.")
+        return False
+
+    if not output_path:
+        logger.error("No split_output_path configured — refusing to write output.")
+        return False
+
+    df = get_data(kwargs={"format": "dataframe"})
+
+    split_df = field_splitter.apply_rules(df, split_rules)
+
+    if split_df is None:
+        logger.error("Split returned None — no output written.")
+        return False
+
+    csv_utils.write_out_data_frame(
+        split_df,
+        output_path,
+        parser_config.get("inputFileEncoding", "utf-8-sig"),
+    )
+
+    logger.info(f"Split complete, output written to: {output_path}")
+
+    return True
+
+
 def prepare_worms_lookup() -> pd.DataFrame:
     transform_config = get_settings_json("transform")
 
@@ -543,6 +593,27 @@ def generate_taxonomic_preview() -> Dict:
     input_frame = get_data(kwargs={"format": "dataframe"})
 
     return taxa_matcher.preview_changes(input_df=input_frame, worms_lut=lut_worms, target_column=target_column)
+
+
+def generate_split_preview() -> Dict:
+    """Shows what the configured column split rules would do, without writing output.
+
+    Expected transform config keys:
+        column_split_rules (list[dict]): Ordered split rules. Each rule takes
+            source_column, delimiter, output_columns, and optionally value, mode,
+            remove_match, overwrite, case_sensitive, clean_whitespace.
+
+    Returns:
+        Dict: {"total_rows", "samples", "rule_summary"}.
+    """
+    transform_config = get_settings_json("transform")
+    split_rules = transform_config.get("column_split_rules", [])
+
+    logger.info(f"Generating split preview for {len(split_rules)} rule(s).")
+
+    input_frame = get_data(kwargs={"format": "dataframe"})
+
+    return field_splitter.preview_rules(input_frame, split_rules)
 
 
 def generate_forecast() -> Dict:
